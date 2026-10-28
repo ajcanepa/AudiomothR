@@ -42,7 +42,8 @@ observation_columns <- c(
 #' used are saved next to it, in `AudioMoth_<ID>_observation.json`.
 #'
 #' @param am An `audiomoth` object with detections (see [analyze_birdnet()]).
-#'   The location (`lat`, `lng`, `accuracy`) is that of `am`.
+#'   Each record takes the location (`lat`, `lng`, `accuracy`) of the
+#'   deployment (card) of its recordings, as it is now in `am`.
 #' @param min_confidence Minimum confidence of the detections that count.
 #' @param min_detections Minimum number of detections (events) of the
 #'   species in the day.
@@ -103,11 +104,12 @@ export_observation <- function(am, min_confidence = 0.8, min_detections = 2, no_
 
   d <- read_detections(am)
   d <- d[d$is_species, , drop = FALSE]
+  # Each record takes the location of its deployment (the box may have moved
+  # between cards), as it is now in the inventory of `am`
   u <- am$location
-  moved <- nrow(d) && (any(abs(d$lat - u$lat) > 1e-6) || any(abs(d$lon - u$lon) > 1e-6))
-  if (moved) inform("i" = "The current location of {.arg am} ({u$lat}, {u$lon}) is used, not the one of the analysis.")
-  if (u$precision_m > 1000) {
-    cli::cli_warn("The precision of the location (\u00b1{u$precision_m} m) is above 1000 m, the largest accuracy of Observation.org: 1000 is exported.")
+  for (col in c("lat", "lon", "precision_m")) d[[col]][is.na(d[[col]])] <- u[[col]]
+  if (any(d$precision_m > 1000)) {
+    cli::cli_warn("The precision of some location (\u00b1{max(d$precision_m)} m) is above 1000 m, the largest accuracy of Observation.org: 1000 is exported.")
   }
 
   # Validation decisions: invalid records out, relabelled ones renamed
@@ -135,13 +137,24 @@ export_observation <- function(am, min_confidence = 0.8, min_detections = 2, no_
   if (!is.null(from)) d <- d[as.Date(d$local_date) >= from, , drop = FALSE]
   if (!is.null(to)) d <- d[as.Date(d$local_date) <= to, , drop = FALSE]
 
-  tax <- ioc_names(unique(d$scientific_name), u$lat, u$lon, equivalences)
-  report_taxonomy(tax)
-  d$obs <- tax$obs[match(d$scientific_name, tax$birdnet)]
+  # Names of Observation.org (the regional rules depend on the location)
+  place <- paste(d$lat, d$lon)
+  d$obs <- NA_character_
+  taxa <- list()
+  for (p in unique(place)) {
+    k <- place == p
+    tax <- ioc_names(unique(d$scientific_name[k]), d$lat[k][1], d$lon[k][1], equivalences)
+    d$obs[k] <- tax$obs[match(d$scientific_name[k], tax$birdnet)]
+    taxa[[p]] <- tax
+  }
+  if (length(taxa)) {
+    tax <- do.call(rbind, taxa)
+    report_taxonomy(tax[!duplicated(paste(tax$birdnet, tax$obs, tax$note)), , drop = FALSE])
+  }
   d <- d[!is.na(d$obs), , drop = FALSE]
 
   d$instant <- as.POSIXct(d$recording_start_utc, tz = "UTC") + d$start_s
-  groups <- split(d, list(d$obs, d$local_date), drop = TRUE)
+  groups <- split(d, list(d$obs, d$local_date, d$lat, d$lon), drop = TRUE)
   groups <- groups[vapply(groups, function(x) {
     any(x$validated) || length(unique(paste(x$file, x$event))) >= min_detections
   }, logical(1))]
@@ -162,9 +175,9 @@ export_observation <- function(am, min_confidence = 0.8, min_detections = 2, no_
       date = x$local_date[1],
       time = format(x$instant[1], "%H:%M", tz = am$time_zone),
       scientific_name = x$obs[1],
-      lat = round(u$lat, 6),
-      lng = round(u$lon, 6),
-      accuracy = min(1000L, max(1L, as.integer(u$precision_m))),
+      lat = round(x$lat[1], 6),
+      lng = round(x$lon[1], 6),
+      accuracy = min(1000L, max(1L, as.integer(x$precision_m[1]))),
       number = 1L,
       notes = note,
       sex = NA_character_,
@@ -175,8 +188,11 @@ export_observation <- function(am, min_confidence = 0.8, min_detections = 2, no_
       method = method,
       counting_method = counting_method,
       related_species = NA_character_,
-      external_reference = sprintf("AudioMoth_%s_%s_%s", am$config$device_id,
-                                   gsub("-", "", x$local_date[1]), safe_name(x$obs[1])),
+      external_reference = sprintf("AudioMoth_%s_%s_%s%s", am$config$device_id,
+                                   gsub("-", "", x$local_date[1]), safe_name(x$obs[1]),
+                                   # two sites the same day (the box moved): one record each
+                                   if (sum(vapply(groups, function(y) y$obs[1] == x$obs[1] && y$local_date[1] == x$local_date[1], logical(1))) > 1)
+                                     paste0("_", x$deployment[1] %|NA|% round(x$lat[1], 4)) else ""),
       obscurity = NA_character_,
       embargo_date = NA_character_,
       stringsAsFactors = FALSE

@@ -111,7 +111,8 @@ write_csv <- function(x, file) {
 text_columns <- c("device_id", "deployment_id", "day_folder", "file", "path", "local_date",
                   "local_time", "utc_offset", "recording_start_utc", "start_utc",
                   "start_local", "date", "time", "record_id", "decision", "new_name",
-                  "comment", "scientific_name", "common_name", "ioc_name")
+                  "comment", "scientific_name", "common_name", "ioc_name", "deployment",
+                  "site", "folder", "first_date", "last_date")
 
 #' Reads a CSV written by the package (or edited by hand)
 #'

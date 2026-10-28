@@ -47,3 +47,23 @@ test_that("creates the PDF report of one recorder and of several", {
     expect_true(file.exists(pdf))
   }
 })
+
+test_that("reports a box moved between two sites", {
+  skip_if_no_quarto()
+  card1 <- make_card()
+  card2 <- tempfile("card_")
+  dir.create(card2)
+  file.copy(file.path(card1, "CONFIG.TXT"), card2)
+  start <- as.POSIXct("2026-10-20 06:00:00", tz = "UTC")
+  write_wav(file.path(card2, "20261020", sprintf("%s_20261020_060000.WAV", device)), comment = am_comment(start))
+  box <- tempfile("box_")
+  am <- read_card(card1, output = box, site = "River")
+  am <- with_mock_birdnet(suppressMessages(analyze_birdnet(am, language = "en_us")))
+  am <- suppressWarnings(read_card(card2, coordinates = "41.30, -3.40", output = box, site = "Forest"))
+  am <- with_mock_birdnet(suppressWarnings(suppressMessages(analyze_birdnet(am, language = "en_us"))))
+  d <- AudiomothR:::report_data(list(am), tempfile(), 0.5)
+  expect_equal(d$deployments$site, c("River", "Forest"))
+  expect_equal(d$recorders$recorder, sprintf("AudioMoth %s", device))
+  pdf <- suppressMessages(create_report(am, map = TRUE, open = FALSE))
+  expect_true(file.exists(pdf))
+})

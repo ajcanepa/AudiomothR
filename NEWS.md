@@ -40,10 +40,21 @@
   where the Python package 'birdnet' looks for it on Windows, macOS and
   Linux: its own download gave up after 30 s on slow connections. The
   messages of TensorFlow Lite are no longer shown.
+* One results folder per box, which gathers its successive SD cards: each
+  card read is a *deployment* with its own dates, site and location
+  (`AudioMoth_<ID>_deployments.csv`), so a box can be moved between sampling
+  sites. BirdNET (location filter), the export to Observation.org (`lat`,
+  `lng`, `accuracy` of each record), the validation and the report (map and
+  table of the deployments) use the location of each card. The location is
+  given with `coordinates` or taken from `CONFIG.TXT` with a warning, and is
+  asked for in interactive sessions (Enter = the previous site). Only the new
+  recordings are analysed, and the results of cards no longer connected are
+  kept.
 * When `output` is not given, `read_audiomoth()` and `process_audiomoth()`
   ask for the results folder (`choose_output()`), suggesting one outside the
-  card and remembering the folder chosen for each card; in non-interactive
-  sessions it must be given. Before, the results were saved inside the card.
+  card and remembering the folder of each box; in non-interactive sessions
+  the remembered folder is used, or it must be given. Before, the results
+  were saved inside the card.
 * The metadata of the WAV files are cached in the results folder
   (`.inventory_cache.rds`): reading a card again only reads the new or
   changed files.
@@ -123,6 +134,13 @@
   (Canary Islands).
 * The example data and tests no longer contain the ID or location of a real
   recorder.
+* Triggered recordings (T.WAV): the compressed blocks are aligned with the
+  file, not with the start of the audio, and the expanded file is written in
+  pieces. Links of Google Maps: the marked point is used, never the centre of
+  the map view (`@`). Duplicated recordings name the copy that is kept.
+  Thanks to José Antonio Barbero-Aparicio, whose review (pull request #1, on
+  version 0.2.0) found these problems, provided the tests of T.WAV files and
+  deployment IDs, and independently confirmed the BirdNET → IOC table.
 
 # AudiomothR 0.2.0
 

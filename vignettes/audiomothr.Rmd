@@ -74,8 +74,11 @@ The results are saved in the `output` folder. When it is not given,
 `~/AudiomothR_results/` (or the one chosen last time for the same card); in
 scripts run with `Rscript` it must be given. Here a temporary folder is used,
 which disappears when R is closed: **in real use, choose a folder of your
-own, outside the card and one per card**. Reading the card again is fast:
-the metadata of the WAV files are kept in a cache in that folder.
+own, outside the card, for each box**. The folder gathers all the cards of
+the box: when the SD card is replaced, the next card is read with the same
+`output` and its recordings are added as a new *deployment*, with its own
+location (the box may have been moved). Reading a card again is fast: the
+metadata of the WAV files are kept in a cache in that folder.
 
 ```{r}
 output <- file.path(tempdir(), "audiomothr_vignette")

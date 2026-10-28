@@ -85,8 +85,15 @@ table_species <- function(r, several_recorders = FALSE) {
 
 # --- Map ---------------------------------------------------------------------
 
+# `recorders`: one row per deployment (recorder, site, lat, lon); a box moved
+# between sites appears once per site
 map_recorders <- function(recorders) {
   recorders <- recorders[is.finite(recorders$lat) & is.finite(recorders$lon), , drop = FALSE]
+  recorders <- recorders[!duplicated(paste(recorders$recorder, recorders$lat, recorders$lon)), , drop = FALSE]
+  if (!is.null(recorders$site)) {
+    recorders$recorder <- if (length(unique(recorders$recorder)) > 1 && any(recorders$site != recorders$recorder))
+      paste(recorders$recorder, recorders$site, sep = ": ") else recorders$site
+  }
   if (nrow(recorders) == 0) {
     graphics::plot.new()
     graphics::text(0.5, 0.5, "The recorders have no coordinates")

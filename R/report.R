@@ -153,12 +153,16 @@ latest_cache <- function(am) {
 #' Gathers the tables that the report needs and copies the spectrograms
 #' @noRd
 report_data <- function(recorders, output, min_confidence) {
-  labels <- vapply(recorders, function(am) am$site, character(1))
+  # A box moved between sites is named after its ID
+  labels <- vapply(recorders, function(am) {
+    sites <- unique(am$deployments$site %||% am$site)
+    if (length(sites) == 1) sites else paste("AudioMoth", am$config$device_id)
+  }, character(1))
   labels <- make.unique(labels, sep = " ")
   figures <- file.path(output, "example_figures")
   unlink(figures, recursive = TRUE)   # a folder of the report only
   rec_columns <- c("file", "day_folder", "start_local", "local_date", "duration_s", "sample_rate",
-                   "battery_v", "temperature_c", "triggered", "valid", "problem")
+                   "battery_v", "temperature_c", "triggered", "valid", "problem", "deployment")
   parts <- lapply(seq_along(recorders), function(i) {
     am <- recorders[[i]]
     label <- labels[i]
@@ -202,6 +206,13 @@ report_data <- function(recorders, output, min_confidence) {
     obs <- observation_export(am, label)
     val <- tryCatch(read_validation(am, quiet = TRUE), error = function(e) NULL)
     cfg <- am$config
+    deployments <- am$deployments %||% data.frame(
+      deployment = NA_character_, site = am$site, lat = am$location$lat, lon = am$location$lon,
+      precision_m = am$location$precision_m, first_date = min(c(g$local_date, NA), na.rm = TRUE),
+      last_date = max(c(g$local_date, NA), na.rm = TRUE), recordings = nrow(g), stringsAsFactors = FALSE)
+    deployments <- cbind(recorder = label, deployments[, c("deployment", "site", "lat", "lon", "precision_m",
+                                                           "first_date", "last_date", "recordings")],
+                         stringsAsFactors = FALSE)
     summary <- data.frame(
       recorder = label, device_id = cfg$device_id, lat = am$location$lat, lon = am$location$lon,
       precision_m = am$location$precision_m, location_source = am$location$source %||% NA,
@@ -224,7 +235,8 @@ report_data <- function(recorders, output, min_confidence) {
     list(summary = summary,
          recordings = cbind(recorder = label, g[, c(rec_columns, "analysed")], stringsAsFactors = FALSE),
          detections = if (nrow(d)) cbind(recorder = label, d, stringsAsFactors = FALSE) else NULL,
-         examples = ex, observation = obs$records, observation_criteria = obs$criteria)
+         examples = ex, observation = obs$records, observation_criteria = obs$criteria,
+         deployments = deployments)
   })
   join <- function(k) {
     x <- lapply(parts, `[[`, k)
@@ -238,6 +250,7 @@ report_data <- function(recorders, output, min_confidence) {
       if (identical(labels, paste("AudioMoth", device))) labels else sprintf("%s (AudioMoth %s)", labels, device)
     } else sprintf("%d AudioMoth recorders", length(recorders)),
     recorders = join("summary"),
+    deployments = join("deployments"),
     recordings = join("recordings"),
     detections = detections[detections$confidence >= min_confidence & detections$is_species, , drop = FALSE],
     n_detections_saved = sum(detections$is_species),

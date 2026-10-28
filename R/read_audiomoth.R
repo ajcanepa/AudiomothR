@@ -55,14 +55,17 @@ choose_folder <- function(start = getwd()) {
 #' as `AudioMoth_<ID>_recordings.csv` in the `output` folder. The audio is not
 #' loaded.
 #'
-#' **Location.** Taken from `coordinates` when given; otherwise from the
-#' `Location` field of `CONFIG.TXT`. If there is none and the session is
-#' interactive, it is asked for in the console: just copy and paste the
-#' position of a point from Google Earth or Google Maps (see
-#' [parse_coordinates()]). `CONFIG.TXT` keeps the location with two decimals
-#' only (about 700 m), so giving `coordinates` is recommended. When both
-#' exist and are more than 10 km apart, a warning is given (and an error when
-#' latitude and longitude look swapped).
+#' **Location of the deployment.** Taken from `coordinates` when given (the
+#' recommended way, since the box may have moved); for a card read before,
+#' the location it was given then; otherwise from the `Location` field of
+#' `CONFIG.TXT`, with a warning (it must have been updated in the AudioMoth
+#' app when the box was placed, and it only has two decimals, about 700 m).
+#' If there is none and the session is interactive, it is asked for in the
+#' console (Enter = the site of the previous deployment): just copy and paste
+#' the position of a point from Google Earth or Google Maps (see
+#' [parse_coordinates()]). When `coordinates` and `CONFIG.TXT` are more than
+#' 10 km apart, a warning is given (and an error when latitude and longitude
+#' look swapped).
 #'
 #' **Recordings that are not valid** (column `problem`): unreadable or empty
 #' files, interrupted recordings, recordings shorter than 3 s, recordings
@@ -70,20 +73,28 @@ choose_folder <- function(start = getwd()) {
 #' recordings (`*T.WAV`, amplitude or frequency threshold) are recognised and
 #' their real duration, with the silences, is used.
 #'
-#' **Output folder.** Each card (each deployment) needs its own `output`
-#' folder: the BirdNET cache and the results of two different cards must not
-#' be mixed. It is better outside the card, which is usually formatted for
-#' the next deployment. When `output` is not given, it is asked for in the
-#' console (see [choose_output()]), suggesting a folder in
-#' `~/AudiomothR_results/` or the one chosen last time for the same card; in
-#' a non-interactive session (`Rscript`) it must be given.
+#' **One results folder per box.** The `output` folder gathers all the
+#' cards of a box (AudioMoth): each card read is a *deployment*, with its own
+#' dates, site and location, and its recordings are added to those of the
+#' cards read before (`AudioMoth_<ID>_deployments.csv`). BirdNET, the export
+#' to Observation.org, the validation and the report then cover the whole
+#' period of the box, each recording with the location of its deployment, so
+#' a box can be moved between sampling sites. Reading a card again replaces
+#' its deployment (and keeps its location unless `coordinates` are given).
+#' The cards of two different boxes cannot share a folder. It is better
+#' outside the card, which is usually formatted for the next deployment. When `output` is not given, it is asked for in the
+#' console (see [choose_output()]), suggesting `~/AudiomothR_results/AudioMoth_<ID>`
+#' or the folder chosen before for the same box; in a non-interactive session
+#' (`Rscript`) it is the folder remembered for the box or, if there is none,
+#' it must be given.
 #'
 #' @param folder Folder with `CONFIG.TXT` and the daily folders. By default it
 #'   is chosen with a dialog ([choose_folder()]). A copy of the recordings
 #'   without `CONFIG.TXT` is also accepted (then `coordinates` is required).
 #' @param coordinates Coordinates of the site in any format accepted by
 #'   [parse_coordinates()]. They take priority over those of `CONFIG.TXT`.
-#' @param site Name of the sampling site (optional).
+#' @param site Name of the sampling site of this deployment (optional; by
+#'   default that of the previous deployment when it is in the same place).
 #' @param precision_m Precision of the location in metres (the `accuracy` of
 #'   Observation.org). By default, the one implied by the number of decimals.
 #' @param time_zone Time zone of the local dates and times, as a name of
@@ -92,8 +103,10 @@ choose_folder <- function(start = getwd()) {
 #' @param output Results folder (it is created if needed). By default it is
 #'   asked for with [choose_output()].
 #' @return An object of class `audiomoth`: a list with `folder`, `config`,
-#'   `location`, `site`, `time_zone`, `output` and `recordings` (data frame
-#'   with one row per WAV file).
+#'   `location`, `site` and `deployment` (of this card), `time_zone`,
+#'   `output`, `recordings` (data frame with one row per WAV file of all the
+#'   cards of the box, with the `deployment`, `site`, `lat`, `lon` and
+#'   `precision_m` of its deployment) and `deployments` (one row per card).
 #' @examples
 #' card <- system.file("extdata", "example", "card", package = "AudiomothR")
 #' am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
@@ -122,22 +135,84 @@ read_audiomoth <- function(folder = choose_folder(), coordinates = NULL, site = 
   }
   if (anyNA(recordings$device_id)) recordings$device_id[is.na(recordings$device_id)] <- config$device_id
   check_card_consistency(recordings, config)
+  check_output_box(output, config$device_id)
 
-  location <- resolve_location(coordinates, config)
+  # Cards read before for this box (one folder of results per box): this card
+  # is a new deployment, or one already read (same recordings)
+  previous <- previous_deployments(output, config$device_id)
+  key <- paste(recordings$file, recordings$start_utc)
+  same <- NULL
+  if (!is.null(previous$recordings) && nrow(previous$recordings)) {
+    old <- previous$recordings
+    hit <- old$deployment[paste(old$file, old$start_utc) %in% key]
+    if (length(hit)) same <- previous$deployments[previous$deployments$deployment == names(sort(table(hit), decreasing = TRUE))[1], ]
+  }
+  last <- if (!is.null(previous$deployments) && nrow(previous$deployments)) {
+    d <- previous$deployments
+    d[order(d$first_date, decreasing = TRUE), ][1, ]
+  }
+
+  location <- resolve_location(coordinates, config, same = same, last = last)
   if (!is.null(precision_m)) location$precision_m <- as.integer(ceiling(precision_m))
   check_time_zone_location(time_zone, location)
-  check_output_card(output, config$device_id, recordings)
+  site <- site %||% {
+    if (!is.null(same) && !is.null(coordinates) && distance_km(location, same) > 1) NULL else same$site
+  } %||% {
+    if (!is.null(last) && distance_km(location, last) < 1) last$site
+  } %||% paste("AudioMoth", config$device_id)
+
+  # Deployment of this card: its identifier, place and dates
+  dates <- stats::na.omit(recordings$local_date)
+  id <- same$deployment %||% {
+    id <- paste0("D", gsub("-", "", if (length(dates)) min(dates) else format(Sys.Date())))
+    taken <- previous$deployments$deployment
+    if (id %in% taken) id <- make.unique(c(taken, id), sep = "_")[length(taken) + 1]
+    id
+  }
+  if (!is.null(same) && !is.null(coordinates) && distance_km(location, same) > 0.001) {
+    inform("i" = "The location of deployment {id} has changed: its recordings will be analysed again with the new one.")
+  }
+  recordings$deployment <- id
+  recordings$site <- site
+  recordings$lat <- location$lat
+  recordings$lon <- location$lon
+  recordings$precision_m <- location$precision_m
+  deployment <- data.frame(
+    deployment = id, folder = folder, first_date = if (length(dates)) min(dates) else NA_character_,
+    last_date = if (length(dates)) max(dates) else NA_character_, recordings = nrow(recordings),
+    site = site, lat = location$lat, lon = location$lon, precision_m = location$precision_m,
+    location_source = location$source, firmware = config$firmware, sample_rate = config$sample_rate,
+    gain = config$gain, read = format(Sys.time(), "%Y-%m-%d %H:%M:%S"), stringsAsFactors = FALSE)
+
+  # The box accumulates its cards: earlier deployments are kept
+  all <- recordings
+  if (!is.null(previous$recordings) && nrow(previous$recordings)) {
+    old <- previous$recordings
+    old <- old[!paste(old$file, old$start_utc) %in% key & old$deployment != id, intersect(names(old), names(recordings)), drop = FALSE]
+    for (col in setdiff(names(recordings), names(old))) old[[col]] <- rep(NA, nrow(old))
+    all <- rbind(old[, names(recordings)], recordings)
+    all <- all[order(all$start_utc, all$file), , drop = FALSE]
+    all$id <- seq_len(nrow(all))
+    rownames(all) <- NULL
+  }
+  deployments <- rbind(previous$deployments[previous$deployments$deployment != id, names(deployment), drop = FALSE],
+                       deployment)
+  deployments <- deployments[order(deployments$first_date), , drop = FALSE]
+  rownames(deployments) <- NULL
 
   am <- structure(list(
     folder = folder,
     config = config,
     location = location,
-    site = site %||% paste("AudioMoth", config$device_id),
+    site = site,
+    deployment = id,
     time_zone = time_zone,
     output = output,
-    recordings = recordings
+    recordings = all,
+    deployments = deployments
   ), class = "audiomoth")
-  write_csv(recordings, output_file(am, "recordings"))
+  write_csv(all, output_file(am, "recordings"))
+  write_csv(deployments, output_file(am, "deployments"))
   if (!isTRUE(getOption("AudiomothR.quiet"))) print(am)
   invisible(am)
 }
@@ -160,7 +235,7 @@ choose_output <- function(suggested = file.path("~", "AudiomothR_results")) {
     abort("{.fn choose_output} only works in an interactive session.",
           "i" = "Give the results folder directly with {.arg output}.")
   }
-  cli::cli_inform(c("i" = "Results folder (better outside the card; one per card).",
+  cli::cli_inform(c("i" = "Results folder of this box (outside the card; it gathers all the cards of the box).",
                     " " = "Press Enter to use {.file {suggested}}, or type another path."))
   path <- readline("Results folder: ")
   path <- trimws(path, whitespace = "[\\s\"']")
@@ -184,40 +259,41 @@ resolve_output <- function(output, folder, config) {
     first <- list.files(folder, pattern = "\\.wav$", ignore.case = TRUE, recursive = TRUE)[1]
     device <- parse_audiomoth_name(basename(first %|NA|% ""))$prefix_id %|NA|% basename(folder)
   }
-  remembered <- remembered_output(folder)
-  date <- if (!is.null(config) && !is.na(config$first_date)) paste0("_", gsub("-", "", config$first_date)) else ""
-  suggested <- remembered %||% file.path("~", "AudiomothR_results", paste0("AudioMoth_", device, date))
+  remembered <- remembered_output(device)
+  suggested <- remembered %||% file.path("~", "AudiomothR_results", paste0("AudioMoth_", device))
   if (!interactive()) {
     if (!is.null(remembered)) {
-      inform("i" = "Results in {.file {remembered}} (the folder used last time for this card).")
+      inform("i" = "Results in {.file {remembered}} (the folder of this box).")
       return(normalizePath(remembered, mustWork = FALSE))
     }
     abort("Give the results folder with {.arg output}.",
-          "i" = "For example {.code output = \"{suggested}\"} (better outside the card; one folder per card).")
+          "i" = "For example {.code output = \"{suggested}\"} (outside the card; one folder per box, which gathers all its cards).")
   }
   output <- choose_output(suggested)
-  remember_output(folder, output)
+  remember_output(device, output)
   output
 }
 
-#' File where the results folder of each card is remembered (only written in
-#' interactive sessions)
+#' File where the results folder of each box (device ID) is remembered (only
+#' written in interactive sessions; the cards are usually mounted at the same
+#' path, so the folder is remembered by box, not by card)
 #' @noRd
 outputs_file <- function() file.path(tools::R_user_dir("AudiomothR", "config"), "outputs.csv")
 
-remembered_output <- function(folder) {
+remembered_output <- function(device) {
   f <- outputs_file()
   if (!file.exists(f)) return(NULL)
-  x <- tryCatch(utils::read.csv(f, stringsAsFactors = FALSE), error = function(e) NULL)
-  hit <- x$output[x$folder == folder]
+  x <- tryCatch(utils::read.csv(f, stringsAsFactors = FALSE, colClasses = "character"), error = function(e) NULL)
+  hit <- x$output[x$device_id == device]
   if (length(hit)) hit[length(hit)] else NULL
 }
 
-remember_output <- function(folder, output) {
+remember_output <- function(device, output) {
   f <- outputs_file()
-  x <- if (file.exists(f)) tryCatch(utils::read.csv(f, stringsAsFactors = FALSE), error = function(e) NULL)
-  x <- rbind(x[x$folder != folder, c("folder", "output"), drop = FALSE],
-             data.frame(folder = folder, output = output, stringsAsFactors = FALSE))
+  x <- if (file.exists(f)) tryCatch(utils::read.csv(f, stringsAsFactors = FALSE, colClasses = "character"), error = function(e) NULL)
+  if (is.null(x$device_id)) x <- NULL
+  x <- rbind(x[x$device_id != device, c("device_id", "output"), drop = FALSE],
+             data.frame(device_id = device, output = output, stringsAsFactors = FALSE))
   try(write_csv(x, f), silent = TRUE)
 }
 
@@ -258,7 +334,7 @@ check_writable <- function(output) {
 
 #' Chooses the location: argument > CONFIG.TXT > console
 #' @noRd
-resolve_location <- function(coordinates, config) {
+resolve_location <- function(coordinates, config, same = NULL, last = NULL) {
   if (!is.null(coordinates)) {
     u <- parse_coordinates(coordinates)
     u$source <- "argument"
@@ -276,22 +352,30 @@ resolve_location <- function(coordinates, config) {
     }
     return(u)
   }
+  # A card already read keeps the location it was given
+  if (!is.null(same)) {
+    return(list(lat = same$lat, lon = same$lon, precision_m = as.integer(same$precision_m),
+                source = same$location_source))
+  }
   if (!is.null(config$location)) {
     u <- config$location
     u$source <- "CONFIG.TXT"
-    if (u$precision_m > 100) {
-      inform(
-        "i" = "The location of the CONFIG.TXT ({u$lat}, {u$lon}) has few decimals (\u00b1{u$precision_m} m).",
-        " " = "For more precision, copy the position from Google Earth and give it with {.arg coordinates}."
-      )
-    }
+    cli::cli_warn(c("The location is taken from the CONFIG.TXT ({u$lat}, {u$lon}, \u00b1{u$precision_m} m): check that it was updated in the AudioMoth Configuration App when the box was placed at this site.",
+                    "i" = "Better give the location of each deployment with {.arg coordinates} (copied from Google Earth): {.url {map_link(u$lat, u$lon)}}",
+                    "i" = if (!is.null(last)) "The previous deployment ({last$site}) was {round(distance_km(u, last), 1)} km away."))
     return(u)
   }
   if (interactive()) {
-    cli::cli_inform(c("!" = "The CONFIG.TXT does not include the location of the recorder.",
-                      "i" = "Copy the position of the site in Google Earth (or Google Maps) and paste it here."))
+    cli::cli_inform(c("!" = "Where was the box during this deployment?",
+                      "i" = "Copy the position of the site in Google Earth (or Google Maps) and paste it here.",
+                      "i" = if (!is.null(last)) "Press Enter to use the site of the previous deployment: {last$site} ({last$lat}, {last$lon})."))
     for (attempt in 1:3) {
-      u <- tryCatch(parse_coordinates(readline("Coordinates: ")), error = function(e) {
+      text <- readline("Coordinates: ")
+      if (!nzchar(trimws(text)) && !is.null(last)) {
+        return(list(lat = last$lat, lon = last$lon, precision_m = as.integer(last$precision_m),
+                    source = "previous deployment"))
+      }
+      u <- tryCatch(parse_coordinates(text), error = function(e) {
         cli::cli_alert_danger(cli_escape(conditionMessage(e)))
         NULL
       })
@@ -304,7 +388,7 @@ resolve_location <- function(coordinates, config) {
     }
     abort("No valid location was given.")
   }
-  abort("The CONFIG.TXT does not include the location of the recorder.",
+  abort("The location of this deployment is unknown (it is not in the CONFIG.TXT).",
         "i" = "Give it with {.arg coordinates}, e.g. {.code coordinates = \"41.123456, -3.123456\"} (copied from Google Earth).")
 }
 
@@ -398,7 +482,9 @@ inventory_wav <- function(folder, config, time_zone, output) {
   prefer <- order(nzchar(name$suffix %|NA|% ""), in_root)
   duplicate <- logical(length(paths))
   duplicate[prefer] <- duplicated(key[prefer]) & !is.na(start[prefer])
-  problem[is.na(problem) & duplicate] <- "duplicate"
+  # The problem names the copy that is kept ("duplicate of ..._071500.WAV")
+  original <- basename(paths)[prefer][match(key, key[prefer])]
+  problem[is.na(problem) & duplicate] <- paste("duplicate of", original[is.na(problem) & duplicate])
   if (any(duplicate)) cli::cli_warn("{sum(duplicate)} duplicated recording{?s} {?is/are} ignored (column {.field problem}).")
 
   rec <- data.frame(
@@ -544,24 +630,31 @@ check_card_consistency <- function(recordings, config) {
   }
 }
 
-#' Each results folder belongs to a single card: otherwise the BirdNET cache
-#' and the results of different cards would be mixed
+#' Each results folder belongs to a single box (AudioMoth): it accumulates
+#' its cards, but the cards of two boxes must not be mixed
 #' @noRd
-check_output_card <- function(output, device_id, recordings) {
+check_output_box <- function(output, device_id) {
   previous <- list.files(output, pattern = "^AudioMoth_.+_recordings\\.csv$", full.names = TRUE)
-  own <- file.path(output, sprintf("AudioMoth_%s_recordings.csv", device_id))
-  others <- setdiff(previous, own)
+  others <- setdiff(previous, file.path(output, sprintf("AudioMoth_%s_recordings.csv", device_id)))
   if (length(others)) {
     abort("The results folder {.file {output}} already holds the results of another AudioMoth ({.file {basename(others[1])}}).",
-          "i" = "Use a different {.arg output} folder for each card.")
+          "i" = "Use one {.arg output} folder for each box: it gathers all the cards of that box.")
   }
-  if (file.exists(own)) {
-    old <- tryCatch(read_csv(own), error = function(e) NULL)
-    if (!is.null(old) && nrow(old) && !is.null(old$file) && !any(old$file %in% recordings$file)) {
-      abort("The results folder {.file {output}} holds the results of another deployment of AudioMoth {device_id} (none of its recordings is on this card).",
-            "i" = "Use a different {.arg output} folder for each deployment.")
-    }
+}
+
+#' Deployments (cards) of the box read before into this results folder
+#' @noRd
+previous_deployments <- function(output, device_id) {
+  rec <- file.path(output, sprintf("AudioMoth_%s_recordings.csv", device_id))
+  dep <- file.path(output, sprintf("AudioMoth_%s_deployments.csv", device_id))
+  read <- function(f) if (file.exists(f)) tryCatch(read_csv(f), error = function(e) NULL)
+  out <- list(recordings = read(rec), deployments = read(dep))
+  # Results of version 0.3.0 before deployments: a single, unnamed one
+  if (!is.null(out$recordings) && (is.null(out$deployments) || is.null(out$recordings$deployment))) {
+    out$recordings <- NULL
+    out$deployments <- NULL
   }
+  out
 }
 
 #' Path of a results file: <output>/AudioMoth_<ID>_<type>.<ext>
@@ -588,7 +681,8 @@ print.audiomoth <- function(x, ...) {
   cli::cli_h1("AudioMoth {x$config$device_id}")
   cli::cli_ul(c(
     "Folder: {.file {x$folder}}",
-    "Site: {x$site} ({u$lat}, {u$lon}; \u00b1{u$precision_m} m; source: {u$source})",
+    "Site of this card: {x$site} ({u$lat}, {u$lon}; \u00b1{u$precision_m} m; source: {u$source})",
+    if (!is.null(x$deployments) && nrow(x$deployments) > 1) "Deployments of this box: {nrow(x$deployments)} ({paste(unique(x$deployments$site), collapse = ', ')})",
     "Map: {.url {map_link(u$lat, u$lon)}}",
     if (length(dates)) "Recordings: {nrow(g)} in {days} day{?s} ({min(dates)} to {max(dates)}, {x$time_zone} time)" else "Recordings: {nrow(g)}",
     if (length(rates)) "Audio: {paste(format(rates, big.mark = ','), collapse = ', ')} Hz, gain {x$config$gain}, {total} in total",

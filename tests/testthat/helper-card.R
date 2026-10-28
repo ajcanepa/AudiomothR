@@ -60,6 +60,31 @@ write_wav <- function(path, duration = 8, rate = 48000, channels = 1, comment = 
   invisible(path)
 }
 
+#' Triggered recording (T.WAV) with the layout of the AudioMoth firmware: a
+#' header of 488 bytes (RIFF, fmt, LIST/INFO with an ICMT of 384 bytes and an
+#' IART of 32) and a silence of `blocks` blocks of 256 samples replaced by a
+#' compressed block. `x1` must have 12 + 256 k samples so that the block is
+#' aligned with the 512-byte buffers of the file, as the firmware does.
+#' (Contributed by José Antonio Barbero-Aparicio, pull request #1.)
+write_twav <- function(path, x1, blocks, x2, rate = 48000) {
+  field <- function(id, text, n) c(charToRaw(id), u32(n), charToRaw(text), raw(n - nchar(text)))
+  bits <- (floor(blocks / 2^(0:31)) %% 2) == 1
+  marker <- c(ifelse(bits, 1L, -1L), integer(224))
+  samples <- writeBin(as.integer(c(x1, marker, x2)), raw(), size = 2, endian = "little")
+  head <- c(charToRaw("WAVE"),
+            charToRaw("fmt "), u32(16), u16(1), u16(1), u32(rate), u32(2 * rate), u16(2), u16(16),
+            charToRaw("LIST"), u32(4 + 392 + 40), charToRaw("INFO"),
+            field("ICMT", sprintf("Recorded at 07:00:00 10/10/2026 (UTC) by AudioMoth %s at medium gain while battery was 4.7V and temperature was 6.7C. Amplitude threshold was 0.5%%.", device), 384),
+            field("IART", paste("AudioMoth", device), 32),
+            charToRaw("data"), u32(length(samples)))
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  writeBin(c(charToRaw("RIFF"), u32(length(head) + length(samples)), head, samples), path)
+  stopifnot(length(head) + 8 == 488)
+  invisible(path)
+}
+
+tone <- function(n, rate = 48000) as.integer(round(8000 * sin(2 * pi * 3000 * seq_len(n) / rate)))
+
 #' The comment written by the AudioMoth firmware
 am_comment <- function(time, offset = "UTC", battery = "4.7V", temperature = "12.5C", id = device) {
   sprintf("Recorded at %s (%s) by AudioMoth %s at medium gain while battery was %s and temperature was %s.",

@@ -27,7 +27,8 @@ export_observation(
 }
 \arguments{
 \item{am}{An \code{audiomoth} object with detections (see \code{\link[=analyze_birdnet]{analyze_birdnet()}}).
-The location (\code{lat}, \code{lng}, \code{accuracy}) is that of \code{am}.}
+Each record takes the location (\code{lat}, \code{lng}, \code{accuracy}) of the
+deployment (card) of its recordings, as it is now in \code{am}.}
 
 \item{min_confidence}{Minimum confidence of the detections that count.}
 

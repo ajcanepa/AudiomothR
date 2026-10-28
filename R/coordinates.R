@@ -23,7 +23,7 @@
 #' | Hemisphere words | `"41.1234 North, 3.1234 West"` |
 #' | Without symbols | `"41 07 24.4 N 3 07 24.4 W"` |
 #' | Google Earth placemark (KML) | `"<coordinates>-3.1234,41.1234,0</coordinates>"` |
-#' | Google Maps link | `"https://www.google.com/maps/@41.1234,-3.1234,17z"` |
+#' | Google Maps link (marked point) | `"https://www.google.com/maps?q=41.1234,-3.1234"` |
 #' | Decimal comma | `"41,123456 -3,123456"` |
 #' | Numeric vector | `c(41.123456, -3.123456)` or `c(lon = -3.1, lat = 41.1)` |
 #'
@@ -110,14 +110,24 @@ normalise_coordinate_text <- function(x) {
 coordinates_from_url <- function(t, original) {
   u <- utils::URLdecode(t)
   num <- "(-?[0-9]+(?:\\.[0-9]+)?)"
-  patterns <- c(paste0("!3d", num, "!4d", num), paste0("@", num, ",", num),
-                paste0("[?&](?:q|ll|query|center|destination)=", num, ",\\s*", num))
+  # The marked point: "!3d<lat>!4d<lon>" or a query such as "?q=<lat>,<lon>"
+  patterns <- c(paste0("!3d", num, "!4d", num),
+                paste0("[?&](?:q|ll|query|destination)=", num, ",\\s*", num))
   for (p in patterns) {
     m <- regmatches(u, regexec(p, u, perl = TRUE))[[1]]
     if (length(m)) return(check_coordinates(as.numeric(m[2]), as.numeric(m[3]), decimal_step(m[2:3]), original))
   }
-  abort("This link does not contain coordinates: {.val {cli_escape(original)}}.",
-        "i" = "Short links ({.url maps.app.goo.gl}) only point to a place. Click the point in Google Maps and copy the numbers shown (e.g. {.val 41.123456, -3.123456}).")
+  # ".../place/<coordinates>/@...": the coordinates of the place, as written
+  place <- regmatches(u, regexec("/place/([^/@]+)", u))[[1]]
+  if (length(place)) {
+    text <- gsub("+", " ", place[2], fixed = TRUE)
+    res <- tryCatch(parse_coordinates(text), error = function(e) NULL)
+    if (!is.null(res)) return(res)
+  }
+  # "@<lat>,<lon>,<zoom>z" is only the centre of the map view, not the point
+  abort("This link does not contain the coordinates of a point: {.val {cli_escape(original)}}.",
+        "i" = "The numbers after {.val @} in a Google Maps link are the centre of the map view, and short links ({.url maps.app.goo.gl}) only point to a place.",
+        "i" = "Click the point in Google Maps and copy the numbers shown (e.g. {.val 41.123456, -3.123456}).")
 }
 
 #' Numbers of a text. Decimal commas are accepted when they are the only way

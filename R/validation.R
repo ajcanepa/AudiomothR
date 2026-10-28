@@ -32,7 +32,7 @@ validation_columns <- c("record_id", "date", "scientific_name", "common_name", "
 #'   sorted from the **least plausible** to the most plausible: the product
 #'   of the highest confidence and the probability of occurrence of the
 #'   species at the site and week (BirdNET metadata model, when known);
-#' - for each card, `n_clips` audio clips of the best detections (from
+#' - for each record, `n_clips` audio clips of the best detections (from
 #'   different recordings) with their spectrograms;
 #' - buttons to mark the record as valid, not valid or unsure, a box to
 #'   choose another species (with autocompletion among the BirdNET species)
@@ -123,10 +123,13 @@ create_validation <- function(am, min_confidence = 0.5, min_detections = 1, n_cl
   dir.create(clips_dir, recursive = TRUE, showWarnings = FALSE)
   has_ffmpeg <- !inherits(try(ffmpeg_path(), silent = TRUE), "try-error")
   clips <- list()
+  no_audio <- 0L
   bar <- cli::cli_progress_bar(name = "Preparing the audio clips", total = nrow(records))
   for (i in seq_len(nrow(records))) {
     x <- groups[[records$record_id[i]]]
     x <- x[order(-x$confidence), , drop = FALSE]
+    x <- x[file.exists(x$path %|NA|% ""), , drop = FALSE]   # only cards still connected
+    if (nrow(x) == 0) no_audio <- no_audio + 1L
     best <- utils::head(x[!duplicated(x$recording), , drop = FALSE], n_clips)
     for (k in seq_len(nrow(best))) {
       b <- best[k, ]
@@ -147,6 +150,9 @@ create_validation <- function(am, min_confidence = 0.5, min_detections = 1, n_cl
   }
   cli::cli_progress_done(id = bar)
   clips <- do.call(rbind, clips) %||% data.frame(record_id = character())
+  if (no_audio) {
+    inform("!" = "{no_audio} record{?s} without audio clips: {?its/their} card is not connected. Read that card again with {.fn read_audiomoth} to listen to {?it/them}.")
+  }
 
   write_csv(records[, validation_columns], validation_file(am))
   html <- file.path(folder, sprintf("AudioMoth_%s_validation.html", am$config$device_id))

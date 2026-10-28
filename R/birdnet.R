@@ -103,6 +103,9 @@ set_birdnet_paths <- function(am) {
   convert <- g$valid & (g$sample_rate != birdnet_rate | g$channels != 1 | g$triggered)
   dest <- file.path(am$output, "audio_48k", am$config$device_id, g$day_folder, g$file)
   g$birdnet_path <- ifelse(!g$valid, NA_character_, ifelse(convert, dest, g$path))
+  # Recordings of cards that are no longer connected cannot be read (their
+  # results stay in the cache)
+  g$birdnet_path[g$valid & !file.exists(g$path) & !(convert & file.exists(dest))] <- NA_character_
   am$recordings <- g
   am
 }
@@ -227,8 +230,6 @@ analyze_birdnet <- function(am, min_confidence = 0.1, language = default_languag
   params <- list(version = version, cache_threshold = round(cache_threshold, 4),
                  location_filter = location_filter,
                  location_threshold = if (location_filter) round(location_threshold, 4),
-                 lat = if (location_filter) round(am$location$lat, 4),
-                 lon = if (location_filter) round(am$location$lon, 4),
                  overlap = round(overlap, 3), sensitivity = round(sensitivity, 3))
   cache <- cache_folder(am, params)
   if (reanalyze) unlink(cache, recursive = TRUE)
@@ -238,7 +239,10 @@ analyze_birdnet <- function(am, min_confidence = 0.1, language = default_languag
     inform("i" = "The parameters differ from the previous analysis: the recordings are analysed with the new ones (the previous results are kept in {.file {older[1]}}).")
   }
 
-  result <- result_file(cache, g)
+  # Each deployment has its own location: the results are kept by place, so
+  # that a new location only analyses its own recordings again
+  place <- location_tag(g)
+  result <- result_file(cache, g, if (location_filter) place else rep("all", nrow(g)))
   cached <- valid[file.exists(result[valid])]
   bad <- cached[!vapply(result[cached], cache_readable, logical(1))]
   if (length(bad)) {
@@ -246,7 +250,12 @@ analyze_birdnet <- function(am, min_confidence = 0.1, language = default_languag
     unlink(result[bad])
   }
   pending <- valid[!file.exists(result[valid])]
+  unavailable <- pending[is.na(g$birdnet_path[pending])]
+  pending <- setdiff(pending, unavailable)
   inform("BirdNET: {length(valid)} recording{?s}; {length(pending)} pending.")
+  if (length(unavailable)) {
+    cli::cli_warn("{length(unavailable)} recording{?s} without results cannot be analysed because {?its/their} card is not connected (deployment{?s} {.val {unique(g$deployment[unavailable])}}).")
+  }
 
   labels <- cached_labels(am, version, language)
   scores_file <- file.path(cache, "location_scores.csv")
@@ -273,15 +282,19 @@ analyze_birdnet <- function(am, min_confidence = 0.1, language = default_languag
 
     # Probability of occurrence of each species at the site and week: used as
     # filter and, for every detection, to tell the unusual ones (validation)
-    weeks <- sort(unique(birdnet_week(g$local_date[valid])))
+    # (for each place and week)
+    needed <- unique(data.frame(place = place[valid], lat = g$lat[valid], lon = g$lon[valid],
+                                week = birdnet_week(g$local_date[valid])))
+    needed <- needed[!is.na(needed$week), , drop = FALSE]
     scores <- if (file.exists(scores_file)) read_csv(scores_file) else NULL
-    missing_weeks <- setdiff(weeks, scores$week)
-    if (length(missing_weeks)) {
+    missing <- needed[!paste(needed$place, needed$week) %in% paste(scores$place, scores$week), , drop = FALSE]
+    if (nrow(missing)) {
       meta <- quiet_python(bn_load_meta(version, language))
-      new <- do.call(rbind, lapply(missing_weeks, function(w) {
-        s <- bn_location_scores(meta, am$location$lat, am$location$lon, w, 0.001)
+      new <- do.call(rbind, lapply(seq_len(nrow(missing)), function(i) {
+        s <- bn_location_scores(meta, missing$lat[i], missing$lon[i], missing$week[i], 0.001)
         if (nrow(s) == 0) return(NULL)
-        data.frame(week = w, label = s$label, scientific_name = sub("_.*$", "", s$label),
+        data.frame(place = missing$place[i], week = missing$week[i], label = s$label,
+                   scientific_name = sub("_.*$", "", s$label),
                    probability = round(s$confidence, 4), stringsAsFactors = FALSE)
       }))
       scores <- rbind(scores, new)
@@ -289,14 +302,16 @@ analyze_birdnet <- function(am, min_confidence = 0.1, language = default_languag
     }
     filters <- NULL
     if (location_filter) {
-      filters <- lapply(weeks, function(w) scores$label[scores$week == w & scores$probability >= location_threshold])
-      names(filters) <- weeks
+      keys <- unique(paste(place[pending], birdnet_week(g$local_date[pending])))
+      filters <- lapply(keys, function(k) scores$label[paste(scores$place, scores$week) == k &
+                                                         scores$probability >= location_threshold])
+      names(filters) <- keys
       empty <- names(filters)[lengths(filters) == 0]
       if (length(empty)) {
-        abort("The location filter leaves no species in week(s) {paste(empty, collapse = ', ')} with a location threshold of {location_threshold}.",
+        abort("The location filter leaves no species in {length(empty)} place{?s} and week{?s} with a location threshold of {location_threshold}.",
               "i" = "Lower {.arg location_threshold} or use {.code location_filter = FALSE}.")
       }
-      inform("Location filter: {round(mean(lengths(filters)))} expected species per week on average.")
+      inform("Location filter: {round(mean(lengths(filters)))} expected species per site and week on average.")
     }
 
     bar <- cli::cli_progress_bar(name = "Analysing with BirdNET", total = length(pending))
@@ -305,7 +320,7 @@ analyze_birdnet <- function(am, min_confidence = 0.1, language = default_languag
         if (g$birdnet_path[k] != g$path[k] && !converted_ok(g, k)) {
           convert_recording(g$path[k], g$birdnet_path[k], g$triggered[k])
         }
-        filter <- if (location_filter) filters[[as.character(birdnet_week(g$local_date[k]))]]
+        filter <- if (location_filter) filters[[paste(place[k], birdnet_week(g$local_date[k]))]]
         pred <- quiet_python(bn_predict(model, g$birdnet_path[k], cache_threshold, overlap,
                                         sensitivity, filter))
         if (is.null(pred) || nrow(pred) == 0) {
@@ -331,6 +346,7 @@ analyze_birdnet <- function(am, min_confidence = 0.1, language = default_languag
   scores <- if (file.exists(scores_file)) read_csv(scores_file) else NULL
   am$detections <- combine_detections(am, g, result, labels, scores, params, min_confidence)
   g$analysis <- ifelse(!g$valid, NA_character_, ifelse(file.exists(result), "ok", "pending"))
+  g$analysis[unavailable] <- "card not connected"
   if (length(errors)) {
     k <- match(names(errors), g$file)
     g$analysis[k] <- paste("error:", errors)
@@ -378,10 +394,14 @@ cache_folder <- function(am, params) {
   file.path(am$output, "birdnet", paste0(am$config$device_id, "_", key))
 }
 
-result_file <- function(cache, g) {
-  file.path(cache, ifelse(nzchar(g$day_folder), g$day_folder, "root"),
+result_file <- function(cache, g, place) {
+  file.path(cache, place, ifelse(nzchar(g$day_folder %|NA|% ""), g$day_folder, "root"),
             sub("\\.wav$", ".csv", g$file, ignore.case = TRUE))
 }
+
+#' Place of each recording ("<lat>_<lon>"), the location of its deployment
+#' @noRd
+location_tag <- function(g) sprintf("%.4f_%.4f", g$lat, g$lon)
 
 #' TRUE when a cached result can be read and has its header
 #' @noRd
@@ -457,16 +477,18 @@ combine_detections <- function(am, g, result, labels, scores, params, min_confid
   week <- birdnet_week(format(start, "%Y-%m-%d", tz = am$time_zone))
   common <- if (is.null(labels)) d$scientific_name else
     labels$common_name[match(d$scientific_name, labels$scientific_name)] %|NA|% d$scientific_name
-  prob <- if (is.null(scores)) rep(NA_real_, nrow(d)) else
-    scores$probability[match(paste(week, d$scientific_name), paste(scores$week, scores$scientific_name))]
+  prob <- if (is.null(scores) || is.null(scores$place)) rep(NA_real_, nrow(d)) else
+    scores$probability[match(paste(location_tag(gi), week, d$scientific_name),
+                             paste(scores$place, scores$week, scores$scientific_name))]
   if (!is.null(scores)) prob[is.na(prob) & d$is_species] <- 0
 
   out <- data.frame(
     device_id = gi$device_id,
-    site = am$site,
-    lat = am$location$lat,
-    lon = am$location$lon,
-    precision_m = am$location$precision_m,
+    deployment = gi$deployment,
+    site = gi$site,
+    lat = gi$lat,
+    lon = gi$lon,
+    precision_m = gi$precision_m,
     day_folder = gi$day_folder,
     file = gi$file,
     path = gi$path,
@@ -496,7 +518,7 @@ combine_detections <- function(am, g, result, labels, scores, params, min_confid
 }
 
 empty_detections <- function() {
-  data.frame(device_id = character(), site = character(), lat = numeric(), lon = numeric(),
+  data.frame(device_id = character(), deployment = character(), site = character(), lat = numeric(), lon = numeric(),
              precision_m = integer(), day_folder = character(), file = character(),
              path = character(), recording_start_utc = character(), local_date = character(),
              local_time = character(), utc_offset = character(), time_zone = character(),
@@ -534,6 +556,7 @@ read_detections <- function(x) {
   if (is.null(d$is_species)) d$is_species <- !d$scientific_name %in% non_species
   if (is.null(d$event)) d$event <- seq_len(nrow(d))
   if (is.null(d$location_prob)) d$location_prob <- rep(NA_real_, nrow(d))
+  if (is.null(d$deployment)) d$deployment <- rep(NA_character_, nrow(d))
   if (!is.null(am)) d <- update_paths(d, am)
   d
 }
@@ -542,8 +565,14 @@ read_detections <- function(x) {
 #' @noRd
 update_paths <- function(d, am) {
   if (nrow(d) == 0) return(d)
-  k <- match(paste(d$day_folder %|NA|% "", d$file), paste(am$recordings$day_folder, am$recordings$file))
-  d$path <- ifelse(is.na(k), d$path, am$recordings$path[k])
+  g <- am$recordings
+  k <- match(paste(d$day_folder %|NA|% "", d$file), paste(g$day_folder %|NA|% "", g$file))
+  d$path <- ifelse(is.na(k), d$path, g$path[k])
+  # The deployment and its location (it may have been corrected since)
+  for (col in intersect(c("deployment", "site", "lat", "lon", "precision_m"), names(g))) {
+    if (is.null(d[[col]])) d[[col]] <- rep(NA, nrow(d))
+    d[[col]] <- ifelse(is.na(k), d[[col]], g[[col]][k])
+  }
   d
 }
 

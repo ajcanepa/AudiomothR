@@ -67,8 +67,9 @@ test_that("translates BirdNET names into IOC 15.2, with regional splits", {
 
 test_that("uses the current location and does not overwrite an edited export", {
   am <- analysed_card()
-  am$location$lat <- 41.5
-  expect_message(obs <- suppressWarnings(export_observation(am)), "current location")
+  # The location of the deployment, as it is now in the inventory
+  am$recordings$lat <- 41.5
+  obs <- suppressWarnings(suppressMessages(export_observation(am)))
   expect_equal(obs$lat, 41.5)
   file <- file.path(am$output, sprintf("AudioMoth_%s_observation.csv", device))
   cat("edited by hand\n", file = file, append = TRUE)

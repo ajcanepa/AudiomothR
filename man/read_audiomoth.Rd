@@ -21,7 +21,8 @@ without \code{CONFIG.TXT} is also accepted (then \code{coordinates} is required)
 \item{coordinates}{Coordinates of the site in any format accepted by
 \code{\link[=parse_coordinates]{parse_coordinates()}}. They take priority over those of \code{CONFIG.TXT}.}
 
-\item{site}{Name of the sampling site (optional).}
+\item{site}{Name of the sampling site of this deployment (optional; by
+default that of the previous deployment when it is in the same place).}
 
 \item{precision_m}{Precision of the location in metres (the \code{accuracy} of
 Observation.org). By default, the one implied by the number of decimals.}
@@ -35,8 +36,10 @@ asked for with \code{\link[=choose_output]{choose_output()}}.}
 }
 \value{
 An object of class \code{audiomoth}: a list with \code{folder}, \code{config},
-\code{location}, \code{site}, \code{time_zone}, \code{output} and \code{recordings} (data frame
-with one row per WAV file).
+\code{location}, \code{site} and \code{deployment} (of this card), \code{time_zone},
+\code{output}, \code{recordings} (data frame with one row per WAV file of all the
+cards of the box, with the \code{deployment}, \code{site}, \code{lat}, \code{lon} and
+\code{precision_m} of its deployment) and \code{deployments} (one row per card).
 }
 \description{
 Identifies the recordings of each daily folder with the data of the
@@ -47,14 +50,17 @@ as \verb{AudioMoth_<ID>_recordings.csv} in the \code{output} folder. The audio i
 loaded.
 }
 \details{
-\strong{Location.} Taken from \code{coordinates} when given; otherwise from the
-\code{Location} field of \code{CONFIG.TXT}. If there is none and the session is
-interactive, it is asked for in the console: just copy and paste the
-position of a point from Google Earth or Google Maps (see
-\code{\link[=parse_coordinates]{parse_coordinates()}}). \code{CONFIG.TXT} keeps the location with two decimals
-only (about 700 m), so giving \code{coordinates} is recommended. When both
-exist and are more than 10 km apart, a warning is given (and an error when
-latitude and longitude look swapped).
+\strong{Location of the deployment.} Taken from \code{coordinates} when given (the
+recommended way, since the box may have moved); for a card read before,
+the location it was given then; otherwise from the \code{Location} field of
+\code{CONFIG.TXT}, with a warning (it must have been updated in the AudioMoth
+app when the box was placed, and it only has two decimals, about 700 m).
+If there is none and the session is interactive, it is asked for in the
+console (Enter = the site of the previous deployment): just copy and paste
+the position of a point from Google Earth or Google Maps (see
+\code{\link[=parse_coordinates]{parse_coordinates()}}). When \code{coordinates} and \code{CONFIG.TXT} are more than
+10 km apart, a warning is given (and an error when latitude and longitude
+look swapped).
 
 \strong{Recordings that are not valid} (column \code{problem}): unreadable or empty
 files, interrupted recordings, recordings shorter than 3 s, recordings
@@ -62,13 +68,20 @@ without a date and duplicated copies of the same recording. Triggered
 recordings (\verb{*T.WAV}, amplitude or frequency threshold) are recognised and
 their real duration, with the silences, is used.
 
-\strong{Output folder.} Each card (each deployment) needs its own \code{output}
-folder: the BirdNET cache and the results of two different cards must not
-be mixed. It is better outside the card, which is usually formatted for
-the next deployment. When \code{output} is not given, it is asked for in the
-console (see \code{\link[=choose_output]{choose_output()}}), suggesting a folder in
-\verb{~/AudiomothR_results/} or the one chosen last time for the same card; in
-a non-interactive session (\code{Rscript}) it must be given.
+\strong{One results folder per box.} The \code{output} folder gathers all the
+cards of a box (AudioMoth): each card read is a \emph{deployment}, with its own
+dates, site and location, and its recordings are added to those of the
+cards read before (\verb{AudioMoth_<ID>_deployments.csv}). BirdNET, the export
+to Observation.org, the validation and the report then cover the whole
+period of the box, each recording with the location of its deployment, so
+a box can be moved between sampling sites. Reading a card again replaces
+its deployment (and keeps its location unless \code{coordinates} are given).
+The cards of two different boxes cannot share a folder. It is better
+outside the card, which is usually formatted for the next deployment. When \code{output} is not given, it is asked for in the
+console (see \code{\link[=choose_output]{choose_output()}}), suggesting \verb{~/AudiomothR_results/AudioMoth_<ID>}
+or the folder chosen before for the same box; in a non-interactive session
+(\code{Rscript}) it is the folder remembered for the box or, if there is none,
+it must be given.
 }
 \examples{
 card <- system.file("extdata", "example", "card", package = "AudiomothR")

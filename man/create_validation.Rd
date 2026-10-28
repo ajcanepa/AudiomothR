@@ -47,7 +47,7 @@ before exporting them to Observation.org:
 sorted from the \strong{least plausible} to the most plausible: the product
 of the highest confidence and the probability of occurrence of the
 species at the site and week (BirdNET metadata model, when known);
-\item for each card, \code{n_clips} audio clips of the best detections (from
+\item for each record, \code{n_clips} audio clips of the best detections (from
 different recordings) with their spectrograms;
 \item buttons to mark the record as valid, not valid or unsure, a box to
 choose another species (with autocompletion among the BirdNET species)

@@ -71,16 +71,27 @@ test_that("reads the INFO comment, GUANO and an unfinished header", {
 })
 
 test_that("expands triggered recordings (T.WAV)", {
-  rate <- 48000
-  block <- function(k) c(ifelse(bitwAnd(k, as.integer(2^(0:30))) > 0, 1, -1), -1, rep(0, 224))
-  tone <- round(3000 * sin(2 * pi * 2000 * seq_len(256 * 100) / rate))
+  x1 <- tone(12 + 256 * 40)
+  x2 <- tone(256 * 20)
   f <- tempfile(fileext = "T.WAV")
-  write_wav(f, rate = rate, samples = c(tone, block(500), tone))
+  write_twav(f, x1, 500, x2)
   h <- AudiomothR:::read_wav_header(f)
-  expect_equal(AudiomothR:::triggered_duration(f, h), (100 + 500 + 100) * 256 / rate)
+  expected <- (length(x1) + 500 * 256 + length(x2)) / 48000
+  expect_equal(AudiomothR:::triggered_duration(f, h), expected)
   out <- tempfile(fileext = ".wav")
   AudiomothR:::expand_triggered_wav(f, out)
-  expect_equal(AudiomothR:::read_wav_header(out)$duration_s, (100 + 500 + 100) * 256 / rate)
+  y <- tuneR::readWave(out)@left
+  expect_equal(length(y) / 48000, expected)
+  expect_equal(y[seq_along(x1)], x1)
+  expect_true(all(y[length(x1) + seq_len(500 * 256)] == 0))
+  expect_equal(utils::tail(y, length(x2)), x2)
+  # In the inventory, the duration is the real one and the times are right
+  dir <- make_card()
+  file.copy(f, file.path(dir, "20261010", sprintf("%s_20261010_070000T.WAV", device)))
+  g <- read_card(dir)$recordings
+  t <- g[endsWith(g$file, "T.WAV"), ]
+  expect_true(t$triggered)
+  expect_equal(t$duration_s, round(expected, 3))
 })
 
 test_that("BirdNET weeks follow the eBird convention", {

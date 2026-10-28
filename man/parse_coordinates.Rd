@@ -30,7 +30,7 @@ Google Maps or a GPS. Recognises:
    Hemisphere words \tab \code{"41.1234 North, 3.1234 West"} \cr
    Without symbols \tab \code{"41 07 24.4 N 3 07 24.4 W"} \cr
    Google Earth placemark (KML) \tab \code{"<coordinates>-3.1234,41.1234,0</coordinates>"} \cr
-   Google Maps link \tab \code{"https://www.google.com/maps/@41.1234,-3.1234,17z"} \cr
+   Google Maps link (marked point) \tab \code{"https://www.google.com/maps?q=41.1234,-3.1234"} \cr
    Decimal comma \tab \code{"41,123456 -3,123456"} \cr
    Numeric vector \tab \code{c(41.123456, -3.123456)} or \code{c(lon = -3.1, lat = 41.1)} \cr
 }

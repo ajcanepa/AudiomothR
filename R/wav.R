@@ -187,21 +187,25 @@ parse_audiomoth_comment <- function(comment) {
 
 triggered_block <- 256L
 
-#' Number of 256-sample blocks represented by each block of a triggered
-#' recording (1 for audio, k for a compressed silence)
+#' Blocks of a triggered recording
+#'
+#' The firmware writes the audio in buffers of 512 bytes aligned with the
+#' file, not with the start of the data: with the usual header of 488 bytes,
+#' the first block starts 12 samples into the data.
+#' @return Data frame with the position of each compressed block (`start`, in
+#'   samples from 0) and the number of 256-sample blocks it stands for
+#'   (`blocks`).
 #' @noRd
-triggered_blocks <- function(samples) {
-  n <- length(samples) %/% triggered_block
-  if (n == 0) return(integer())
-  m <- matrix(samples[seq_len(n * triggered_block)], nrow = triggered_block)
-  head <- m[1:32, , drop = FALSE]
-  compressed <- colSums(abs(head) == 1) == 32 & colSums(m[33:triggered_block, , drop = FALSE] != 0) == 0
-  k <- rep(1, n)
-  if (any(compressed)) {
-    bits <- head[, compressed, drop = FALSE] == 1
-    k[compressed] <- colSums(bits * 2^(0:31))
-  }
-  pmax(1, k)
+triggered_markers <- function(samples, data_start) {
+  first <- ((512 - data_start %% 512) %% 512) %/% 2
+  if (length(samples) < first + triggered_block) return(data.frame(start = numeric(), blocks = numeric()))
+  starts <- seq(first, length(samples) - triggered_block, by = triggered_block)
+  head <- matrix(samples[outer(0:31, starts, "+") + 1], nrow = 32)
+  candidates <- starts[colSums(abs(head) == 1) == 32]
+  rest <- matrix(samples[outer(32:(triggered_block - 1), candidates, "+") + 1], nrow = triggered_block - 32)
+  markers <- candidates[colSums(rest != 0) == 0]
+  bits <- matrix(samples[outer(0:31, markers, "+") + 1] == 1, nrow = 32)
+  data.frame(start = markers, blocks = pmax(1, colSums(bits * 2^(0:31))))
 }
 
 #' Reads the 16-bit mono samples of a WAV file
@@ -221,25 +225,46 @@ read_pcm16 <- function(path, header = read_wav_header(path)) {
 triggered_duration <- function(path, header) {
   samples <- tryCatch(read_pcm16(path, header), error = function(e) NULL)
   if (is.null(samples)) return(header$duration_s)
-  k <- triggered_blocks(samples)
-  (length(samples) + sum(k - 1) * triggered_block) / header$sample_rate
+  m <- triggered_markers(samples, header$data_start)
+  (length(samples) + sum(m$blocks - 1) * triggered_block) / header$sample_rate
 }
 
 #' Writes the expanded version of a triggered recording (silences restored)
+#'
+#' Each compressed block is replaced by the silence it stands for. The file
+#' is written in pieces (a silence may last hours) under a temporary name.
 #' @noRd
 expand_triggered_wav <- function(path, dest) {
   header <- read_wav_header(path)
   samples <- read_pcm16(path, header)
-  k <- triggered_blocks(samples)
-  n <- length(k) * triggered_block
-  blocks <- matrix(samples[seq_len(n)], nrow = triggered_block)
-  blocks[, k > 1] <- 0L
-  # Each sample of a compressed block (all set to 0) is repeated k times:
-  # k * 256 samples of silence, the length of the stretch that was skipped
-  expanded <- c(rep(as.vector(blocks), times = rep(k, each = triggered_block)),
-                samples[-seq_len(n)])
-  wave <- tuneR::Wave(left = as.integer(expanded), samp.rate = header$sample_rate, bit = 16)
+  m <- triggered_markers(samples, header$data_start)
+  n <- length(samples) + sum(m$blocks - 1) * triggered_block
+  if (2 * n + 36 > 4294967295) abort("{.file {path}} is too long to be expanded into a WAV file.")
   dir.create(dirname(dest), recursive = TRUE, showWarnings = FALSE)
-  tuneR::writeWave(wave, dest)
+  tmp <- paste0(dest, ".part")
+  con <- file(tmp, "wb")
+  on.exit({ close(con); unlink(tmp) })
+  u32 <- function(v) writeBin(as.integer(v - if (v > .Machine$integer.max) 2^32 else 0), con, size = 4, endian = "little")
+  u16 <- function(v) writeBin(as.integer(v), con, size = 2, endian = "little")
+  rate <- header$sample_rate
+  writeChar("RIFF", con, eos = NULL); u32(36 + 2 * n); writeChar("WAVE", con, eos = NULL)
+  writeChar("fmt ", con, eos = NULL); u32(16); u16(1); u16(1); u32(rate); u32(2 * rate); u16(2); u16(16)
+  writeChar("data", con, eos = NULL); u32(2 * n)
+  put <- function(v) if (length(v)) writeBin(as.integer(v), con, size = 2, endian = "little")
+  from <- 1
+  for (k in seq_len(nrow(m))) {
+    put(samples[seq.int(from, length.out = m$start[k] + 1 - from)])
+    silence <- m$blocks[k] * triggered_block
+    while (silence > 0) {
+      piece <- min(silence, 2^20)
+      put(integer(piece))
+      silence <- silence - piece
+    }
+    from <- m$start[k] + triggered_block + 1
+  }
+  put(samples[seq.int(from, length.out = length(samples) + 1 - from)])
+  close(con)
+  on.exit(unlink(tmp))
+  if (!file.rename(tmp, dest)) abort("Cannot write {.file {dest}}.")
   invisible(dest)
 }

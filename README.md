@@ -81,7 +81,7 @@ am <- process_audiomoth(
   folder = "/path/to/the/card",                   # or without it: a dialog opens
   coordinates = "41°07'24.4\"N 3°07'24.4\"W",     # copied from Google Earth
   site = "River - bridge",                        # optional
-  output = "~/AudioMoth_results/river_bridge",    # one folder per card
+  output = "~/AudiomothR_results/box_01",          # one folder per box (all its cards)
   example_species = "auto",                       # examples of the detected species
   validation = TRUE,                              # page to validate the records by ear
   report = TRUE                                   # PDF report (needs Quarto)
@@ -90,9 +90,10 @@ am <- process_audiomoth(
 
 The **folder** is the root of the card: the one that contains `CONFIG.TXT` and
 the daily folders (`20261006/`, `20261007/`...). The **output** folder keeps
-the results; when it is not given, it is asked for in the console, suggesting
-`~/AudiomothR_results/AudioMoth_<ID>_<date>` (or the folder chosen last time
-for the same card). In scripts run with `Rscript` it must be given.
+the results of the **box**: every new card of the same box is added to it
+(see "Several cards of the same box" below). When it is not given, it is
+asked for in the console, suggesting `~/AudiomothR_results/AudioMoth_<ID>` (or
+the folder chosen before for the same box).
 
 ## 4. Step by step
 
@@ -130,6 +131,33 @@ export_observation(am)
 create_report(am)
 create_report(list(am1, am2, am3), by_recorder = FALSE, output = "report_river")
 ```
+
+### Several cards of the same box
+
+A box (AudioMoth) usually stays in the field for months while its SD cards
+are replaced every few days. Use **one results folder per box**: each card is
+read into it as a new *deployment*, with its own dates, site and location
+(the box may have been moved), and its recordings are added to those of the
+previous cards.
+
+```r
+out <- "~/AudiomothR_results/box_01"
+am <- read_audiomoth("/media/SD", coordinates = "41.123456, -3.123456",
+                     site = "River - bridge", output = out)     # first card
+am <- analyze_birdnet(am)
+# ...ten days later, the next card (the box was moved to another site)
+am <- read_audiomoth("/media/SD", coordinates = "41.300000, -3.400000",
+                     site = "Pine forest", output = out)        # second card
+am <- analyze_birdnet(am)          # only analyses the new recordings
+export_observation(am)             # all the cards, each record with its location
+```
+
+The location of each card is the one given in `coordinates` or, otherwise,
+that of its `CONFIG.TXT` (with a warning: it must have been updated in the
+AudioMoth app when the box was moved). In an interactive session, if there is
+none, it is asked for (Enter = the site of the previous card). The cards are
+listed in `AudioMoth_<ID>_deployments.csv`; the results of a card that is no
+longer connected are kept, and the report shows every site on the map.
 
 ### Resuming the work another day
 
@@ -202,7 +230,7 @@ or a **GPS**:
 | Hemisphere first (handheld GPS) | `"N41 07.407 W3 07.407"` |
 | Without symbols | `"41 07 24.4 N 3 07 24.4 W"` |
 | Google Earth placemark (KML) | `"<coordinates>-3.123456,41.123456,0</coordinates>"` |
-| Google Maps link | `"https://www.google.com/maps/@41.123456,-3.123456,17z"` |
+| Google Maps link | `"https://www.google.com/maps?q=41.123456,-3.123456"` |
 | Decimal comma | `"41,123456 -3,123456"` |
 | Numeric vector | `c(41.123456, -3.123456)` |
 
@@ -235,11 +263,13 @@ value does not guarantee that the identification is right.
 ## 9. Results
 
 In the `output` folder (asked for when not given; better outside the card,
-which is usually formatted for the next deployment, and **one per card**):
+which is usually formatted for the next deployment, and **one per box**: it
+gathers all the cards of the box):
 
 | File | Contents |
 |---|---|
-| `AudioMoth_<ID>_recordings.csv` | Inventory: file, day, UTC and local time, duration, sample rate, battery, temperature, problems and state of the analysis |
+| `AudioMoth_<ID>_deployments.csv` | The cards (deployments) of the box: dates, site, location and its source |
+| `AudioMoth_<ID>_recordings.csv` | Inventory (all the cards): file, day, UTC and local time, duration, sample rate, battery, temperature, problems and state of the analysis |
 | `AudioMoth_<ID>_detections.csv` | All the detections: file, local date and time, start and end (s), species, confidence, `n_labels_window`, `other_confidence_max`, `no_doubts`, `location_prob`, coordinates |
 | `AudioMoth_<ID>_observation.csv` / `.json` | Import file for Observation.org and the criteria used |
 | `examples/<species>/*.wav, *.png, *.mp4` | Clip, spectrogram and video of each example |
@@ -306,7 +336,7 @@ Recordings at 250 kHz take longer (they are first converted to 48 kHz).
 | `Cannot find ffmpeg` | Install ffmpeg (see Requirements) or set its path: `options(AudiomothR.ffmpeg = "C:/ffmpeg/bin/ffmpeg.exe")` |
 | `Cannot find Quarto` | Use RStudio or Positron (they include it), install it from <https://quarto.org> or set its path: `options(AudiomothR.quarto = "/path/to/quarto")` |
 | `Cannot write in ...` | The card is write-protected: give another `output` folder |
-| `The results folder ... already holds the results of another AudioMoth` | Use one `output` folder per card (and per deployment) |
+| `The results folder ... already holds the results of another AudioMoth` | Use one `output` folder per box; each box gathers its own cards |
 | The map of the report has no background | Install `maptiles`, `sf` and `terra`, and check the Internet connection |
 | `There is no CONFIG.TXT` | Choose the root folder of the card, not a daily folder (or give `coordinates` to read a copy without `CONFIG.TXT`) |
 | The first run of BirdNET takes long | Normal: it installs Python and TensorFlow and downloads the model once (run `setup_birdnet()` beforehand) |

@@ -87,22 +87,26 @@ BirdNET confidence is a score between 0 and 1, not the probability that the iden
 ```{r}
 #| eval: !expr data$map
 #| fig-height: 4.5
-map_recorders(recorders)
+map_recorders(data$deployments)
 ```
 
 ```{r}
 #| results: asis
-period <- tapply(g_all$local_date, g_all$recorder, function(x) {
-  x <- stats::na.omit(x)
-  if (length(x)) paste(date_txt(min(x)), "–", date_txt(max(x))) else "–"
-})
-n_rec <- tapply(g_all$valid, g_all$recorder, length)
-n_bad <- tapply(!g_all$valid, g_all$recorder, sum)
-kable_md(data.frame(
-  Recorder = esc(recorders$recorder), `AudioMoth ID` = recorders$device_id,
-  Coordinates = paste0(num(recorders$lat, 5), ", ", num(recorders$lon, 5), " (±", recorders$precision_m, " m)"),
-  Period = period[recorders$recorder], Recordings = int(as.integer(n_rec[recorders$recorder])),
-  `With problems` = as.integer(n_bad[recorders$recorder]), check.names = FALSE))
+# One row per deployment (card): a box may have been moved between sites
+dep <- data$deployments
+n_bad <- tapply(!g_all$valid, paste(g_all$recorder, g_all$deployment %|% ""), sum)
+t <- data.frame(
+  Recorder = esc(dep$recorder), Site = esc(dep$site),
+  Coordinates = paste0(num(dep$lat, 5), ", ", num(dep$lon, 5), " (\u00b1", dep$precision_m, " m)"),
+  Period = ifelse(is.na(dep$first_date), "\u2013", paste(date_txt(dep$first_date), "\u2013", date_txt(dep$last_date))),
+  Recordings = int(dep$recordings),
+  Problems = as.integer(n_bad[paste(dep$recorder, dep$deployment %|% "")]) %|% 0L,
+  check.names = FALSE)
+if (!several) {
+  paragraph("AudioMoth ", recorders$device_id, ": ", nrow(dep), if (nrow(dep) == 1) " deployment." else " deployments (cards):")
+  t$Recorder <- NULL
+}
+kable_md(t)
 
 kable_md(data.frame(
   Recorder = esc(recorders$recorder), Firmware = recorders$firmware %|% "–",

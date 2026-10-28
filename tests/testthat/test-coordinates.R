@@ -52,9 +52,13 @@ test_that("accepts typographic minus signs, labels and Google Maps links", {
   expect_equal(parse_coordinates("41.123456, −3.123456")$lon, -3.123456)
   expect_equal(parse_coordinates("41.123456, –3.123456")$lon, -3.123456)
   expect_equal(parse_coordinates("Box 2: 41.123456, -3.123456")$lat, 41.123456)
-  url <- parse_coordinates("https://www.google.com/maps/place/41%C2%B007'24.4%22N/@41.1234567,-3.1234567,17z")
-  expect_equal(c(url$lat, url$lon), c(41.123457, -3.123457))
-  expect_error(parse_coordinates("https://maps.app.goo.gl/5rTbQhGkUe1VsA"), "does not contain coordinates")
+  # The marked point, not the centre of the map view ("@")
+  url <- parse_coordinates("https://www.google.com/maps/place/41%C2%B007'24.4%22N+3%C2%B007'24.4%22W/@41.1234567,-3.1334567,17z")
+  expect_equal(c(url$lat, url$lon), c(41 + 7 / 60 + 24.4 / 3600, -(3 + 7 / 60 + 24.4 / 3600)), tolerance = 1e-6)
+  expect_equal(parse_coordinates("https://www.google.com/maps?q=41.123456,-3.123456")$lon, -3.123456)
+  expect_equal(parse_coordinates("https://www.google.com/maps/place/x/data=!3d41.123456!4d-3.123456")$lat, 41.123456)
+  expect_error(parse_coordinates("https://www.google.com/maps/@41.1234567,-3.1234567,17z"), "centre of the map")
+  expect_error(parse_coordinates("https://maps.app.goo.gl/5rTbQhGkUe1VsA"), "does not contain the coordinates")
 })
 
 test_that("rejects texts that are not coordinates", {

@@ -50,8 +50,10 @@ test_that("finds duplicated recordings and ignores other folders with a warning"
   dir.create(file.path(dir, "other"))
   file.copy(file.path(day, sprintf("%s_20261010_060500.WAV", device)), file.path(dir, "other"))
   expect_warning(expect_warning(am <- read_card(dir), "duplicated"), "outside the root")
-  dup <- am$recordings[am$recordings$problem %in% "duplicate", ]
+  dup <- am$recordings[grepl("^duplicate", am$recordings$problem), ]
   expect_equal(dup$file, sprintf("%s_20261010_060000 2.WAV", device))
+  expect_equal(dup$problem, sprintf("duplicate of %s_20261010_060000.WAV", device))
+  expect_equal(sum(am$recordings$valid), 4)   # the same as without the copy
 })
 
 test_that("reads a copy of the recordings without CONFIG.TXT", {
@@ -71,10 +73,6 @@ test_that("checks the arguments and the results folder", {
   expect_equal(suppressMessages(read_card(dir, time_zone = "UTC+2"))$time_zone, "Etc/GMT-2")
   expect_warning(read_card(make_card(location = FALSE), coordinates = "28.10, -15.40"), "Canary")
 
-  # A results folder belongs to a single card
-  other <- make_card()
-  writeLines("x", file.path(dir, "results", "AudioMoth_0123456789ABCDEF_recordings.csv"))
-  expect_error(read_card(other, output = file.path(dir, "results")), "another AudioMoth")
 })
 
 test_that("keeps the metadata of the recordings in a cache", {
@@ -97,4 +95,77 @@ test_that("asks for the results folder, which is required in scripts", {
   dir <- make_card()
   expect_error(suppressMessages(read_audiomoth(dir, coordinates = "41.00, -3.00")), "results folder")
   expect_error(choose_output(), "interactive")
+})
+
+test_that("a recording with a deployment ID keeps the device of CONFIG.TXT", {
+  # (Case contributed by José Antonio Barbero-Aparicio, pull request #1)
+  dir <- make_card()
+  write_wav(file.path(dir, "20261010", "0123456789ABCDEF_20261010_070000.WAV"), duration = 5,
+            comment = "Recorded at 07:00:00 10/10/2026 (UTC) during deployment 0123456789ABCDEF at medium gain while battery was 4.7V and temperature was 6.7C.")
+  g <- read_card(dir)$recordings
+  x <- g[g$file == "0123456789ABCDEF_20261010_070000.WAV", ]
+  expect_equal(x$device_id, device)
+  expect_equal(x$deployment_id, "0123456789ABCDEF")
+  expect_equal(c(x$battery_v, x$temperature_c), c(4.7, 6.7))
+  expect_equal(x$start_utc, "2026-10-10 07:00:00")
+})
+
+test_that("a box gathers its cards, each with its own location", {
+  # Two cards of the same box, the second one at another site
+  card1 <- make_card()
+  card2 <- tempfile("card_")
+  dir.create(card2)
+  file.copy(file.path(card1, "CONFIG.TXT"), card2)
+  for (day in c("20261020", "20261021")) {
+    start <- as.POSIXct(paste(day, "060000"), format = "%Y%m%d %H%M%S", tz = "UTC")
+    write_wav(file.path(card2, day, sprintf("%s_%s_060000.WAV", device, day)), comment = am_comment(start))
+  }
+  box <- tempfile("box_")
+  am1 <- read_card(card1, output = box, site = "River")
+  expect_warning(am2 <- read_card(card2, coordinates = "41.30, -3.40", output = box, site = "Forest"), "km away")
+  expect_equal(nrow(am2$recordings), 7)
+  expect_equal(am2$deployments$site, c("River", "Forest"))
+  expect_equal(unique(am2$recordings$lat), c(41, 41.3))
+  # Reading the first card again keeps its location and does not duplicate anything
+  am3 <- read_card(card1, coordinates = NULL, output = box)
+  expect_equal(nrow(am3$recordings), 7)
+  expect_equal(am3$location$lat, 41)
+  expect_equal(am3$site, "River")
+  expect_equal(nrow(am3$deployments), 2)
+  # Another box cannot share the folder
+  writeLines("x", file.path(box, "AudioMoth_0123456789ABCDEF_recordings.csv"))
+  expect_error(read_card(make_card(), output = box), "another AudioMoth")
+})
+
+test_that("BirdNET and Observation.org use the location of each deployment", {
+  card1 <- make_card()
+  card2 <- tempfile("card_")
+  dir.create(card2)
+  file.copy(file.path(card1, "CONFIG.TXT"), card2)
+  start <- as.POSIXct("2026-10-20 06:00:00", tz = "UTC")
+  write_wav(file.path(card2, "20261020", sprintf("%s_20261020_060000.WAV", device)), comment = am_comment(start))
+  box <- tempfile("box_")
+  calls <- new.env()
+  am <- read_card(card1, output = box)
+  with_mock_birdnet(suppressMessages(analyze_birdnet(am, language = "en_us")), calls = calls)
+  expect_equal(calls$n, 4)
+  am <- suppressWarnings(read_card(card2, coordinates = "41.30, -3.40", output = box))
+  extra <- data.frame(file = "20261020_060000", start = 0, end = 3, scientific_name = "Cettia cetti", confidence = 0.95)
+  helper <- environment(with_mock_birdnet)
+  old <- get("mock_predictions", helper)
+  assign("mock_predictions", rbind(old, extra), envir = helper)
+  on.exit(assign("mock_predictions", old, envir = helper))
+  am <- with_mock_birdnet(suppressWarnings(suppressMessages(analyze_birdnet(am, language = "en_us"))), calls = calls)
+  expect_equal(calls$n, 1)   # only the new card
+  d <- am$detections
+  expect_equal(sort(unique(d$lat)), c(41, 41.3))
+  obs <- suppressWarnings(suppressMessages(export_observation(am, min_confidence = 0.5, min_detections = 1,
+                                                              file = tempfile(fileext = ".csv"))))
+  expect_equal(obs$lat[obs$date == "2026-10-20"], 41.3)
+  expect_equal(unique(obs$lat[obs$date == "2026-10-10"]), 41)
+  # A card that is no longer connected keeps its results
+  unlink(card1, recursive = TRUE)
+  am <- with_mock_birdnet(suppressWarnings(suppressMessages(analyze_birdnet(am, language = "en_us"))), calls = calls)
+  expect_equal(calls$n, 0)
+  expect_true(any(am$detections$lat == 41))
 })

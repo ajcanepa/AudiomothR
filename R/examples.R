@@ -55,6 +55,8 @@ select_examples <- function(x, species, n = 3, min_confidence = 0.85, no_doubts 
     n_e <- wanted[[e]]
     de <- d[d$scientific_name == e, , drop = FALSE]
     ok <- de$confidence >= min_confidence & (!no_doubts | de$no_doubts)
+    # Only recordings whose card is connected can be cut
+    if (!is.null(de$path)) ok <- ok & (is.na(de$path) | file.exists(de$path %|NA|% ""))
     cand <- de[ok, , drop = FALSE]
     cand <- cand[order(-cand$confidence), , drop = FALSE]
     if (one_per_recording) cand <- cand[!duplicated(paste(cand$day_folder, cand$file)), , drop = FALSE]

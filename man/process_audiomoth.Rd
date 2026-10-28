@@ -30,7 +30,8 @@ without \code{CONFIG.TXT} is also accepted (then \code{coordinates} is required)
 \item{coordinates}{Coordinates of the site in any format accepted by
 \code{\link[=parse_coordinates]{parse_coordinates()}}. They take priority over those of \code{CONFIG.TXT}.}
 
-\item{site}{Name of the sampling site (optional).}
+\item{site}{Name of the sampling site of this deployment (optional; by
+default that of the previous deployment when it is in the same place).}
 
 \item{precision_m}{Precision of the location in metres (the \code{accuracy} of
 Observation.org). By default, the one implied by the number of decimals.}
