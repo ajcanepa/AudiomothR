@@ -1,0 +1,164 @@
+---
+metadata-files: [_metadata.yml]
+date-format: "D MMMM YYYY"
+lang: en
+format:
+  typst:
+    papersize: a4
+    margin:
+      x: 2cm
+      y: 2cm
+    fontsize: 10pt
+    toc: true
+    toc-depth: 2
+    section-numbering: "1.1"
+    fig-format: png
+    fig-dpi: 150
+    include-in-header:
+      - text: |
+          #show table: set text(size: 8pt)
+          #show figure.caption: set text(size: 8.5pt)
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| include: false
+# Report created by AudiomothR::create_report(). The data are in
+# report_data.rds, the title in _metadata.yml and the functions in
+# report_functions.R; this file can be edited and rendered again with
+# `quarto render report.qmd` (create_report() keeps the edits).
+rf <- new.env()
+sys.source("report_functions.R", envir = rf, keep.source = FALSE)
+attach(rf, name = "report_functions", warn.conflicts = FALSE)
+data <- readRDS("report_data.rds")
+recorders <- data$recorders
+g_all <- data$recordings
+d_all <- data$detections
+r_all <- report_species(d_all)
+several <- nrow(recorders) > 1
+dates <- sort(unique(stats::na.omit(g_all$local_date)))
+hours <- sum(g_all$duration_s[g_all$analysed], na.rm = TRUE) / 3600
+n_obs <- if (is.null(data$observation)) 0 else nrow(data$observation)
+not_analysed <- recorders$recorder[!recorders$analysed]
+```
+
+# Summary
+
+```{r}
+#| results: asis
+paragraph(
+  "This report summarises the analysis with BirdNET of ",
+  if (several) paste0(nrow(recorders), " AudioMoth recorders") else paste0("the AudioMoth recorder ", recorders$device_id),
+  ": ", int(nrow(g_all)), " recordings (", num(hours, if (hours < 10) 2 else 1), " h of analysed audio)",
+  if (length(dates)) paste0(" between ", date_txt(dates[1]), " and ", date_txt(dates[length(dates)])) else "", ". ",
+  "With a confidence of at least ", num(data$min_confidence), ", BirdNET made ", int(nrow(d_all)),
+  " detections (3 s windows with the species) of ", nrow(r_all), " species",
+  if (nrow(r_all)) paste0("; the most frequent is ", esc(r_all$common_name[1]), " (", italic(r_all$scientific_name[1]),
+                          ", ", int(r_all$detections[1]), if (r_all$detections[1] == 1) " detection)" else " detections)") else "",
+  ".")
+if (length(not_analysed)) {
+  paragraph("**Not analysed with BirdNET:** ", paste(esc(not_analysed), collapse = ", "),
+            ". Their detections are missing from this report.")
+}
+
+kable_md(data.frame(
+  Indicator = c("Recorders", "Days with recordings", "Recordings (valid / analysed)", "Hours of analysed audio",
+                paste0("Detections saved (confidence ≥ ", num(min_or(recorders$cache_threshold, 0.1)), ")"),
+                paste0("Detections with confidence ≥ ", num(data$min_confidence)),
+                "Species", "Audio examples", "Records for Observation.org", "Records validated by ear"),
+  Value = c(nrow(recorders), length(dates),
+            paste0(int(nrow(g_all)), " (", int(sum(g_all$valid)), " / ", int(sum(g_all$analysed)), ")"),
+            num(hours, if (hours < 10) 2 else 1), int(data$n_detections_saved), int(nrow(d_all)), nrow(r_all),
+            if (is.null(data$examples)) 0 else nrow(data$examples), n_obs, sum(recorders$validated)),
+  check.names = FALSE), align = c("l", "r"))
+```
+
+::: {.callout-important}
+## How to read the confidence
+
+BirdNET confidence is a score between 0 and 1, not the probability that the identification is right, and its relation with the rate of correct identifications changes between species and sites. Species with few detections or low confidence must be checked by listening to the recordings before using or publishing the data (see `create_validation()`).
+:::
+
+# Recorders
+
+```{r}
+#| eval: !expr data$map
+#| fig-height: 4.5
+map_recorders(recorders)
+```
+
+```{r}
+#| results: asis
+period <- tapply(g_all$local_date, g_all$recorder, function(x) {
+  x <- stats::na.omit(x)
+  if (length(x)) paste(date_txt(min(x)), "–", date_txt(max(x))) else "–"
+})
+n_rec <- tapply(g_all$valid, g_all$recorder, length)
+n_bad <- tapply(!g_all$valid, g_all$recorder, sum)
+kable_md(data.frame(
+  Recorder = esc(recorders$recorder), `AudioMoth ID` = recorders$device_id,
+  Coordinates = paste0(num(recorders$lat, 5), ", ", num(recorders$lon, 5), " (±", recorders$precision_m, " m)"),
+  Period = period[recorders$recorder], Recordings = int(as.integer(n_rec[recorders$recorder])),
+  `With problems` = as.integer(n_bad[recorders$recorder]), check.names = FALSE))
+
+kable_md(data.frame(
+  Recorder = esc(recorders$recorder), Firmware = recorders$firmware %|% "–",
+  `Sample rate` = paste(int(recorders$sample_rate), "Hz"), Gain = recorders$gain %|% "–",
+  Cycle = ifelse(is.na(recorders$recording_s), "–", paste0(recorders$recording_s, " s / ", recorders$sleep_s, " s sleep")),
+  `Time zone` = recorders$time_zone, check.names = FALSE))
+```
+
+```{r}
+#| results: asis
+groups <- if (isTRUE(data$by_recorder)) as.list(recorders$recorder) else list(recorders$recorder)
+sections <- vapply(groups, function(names) {
+  section_title <- if (length(names) == 1 && several) esc(names) else if (several) "All recorders" else "Results"
+  g <- g_all[g_all$recorder %in% names, , drop = FALSE]
+  d <- d_all[d_all$recorder %in% names, , drop = FALSE]
+  r <- report_species(d)
+  ex <- rows_of(data$examples, names)
+  obs <- rows_of(data$observation, names)
+  analysed <- all(recorders$analysed[recorders$recorder %in% names])
+  height_confidence <- 1.2 + 0.22 * min(25, nrow(r))
+  height_hours <- 1.6 + 0.22 * min(20, nrow(r))
+  knitr::knit_child("_section.qmd", envir = environment(), quiet = TRUE)
+}, character(1))
+cat(sections, sep = "\n")
+```
+
+# Methods and criteria
+
+```{r}
+#| results: asis
+models <- unique(stats::na.omit(recorders$model))
+paragraph(
+  "The recordings were processed with the R package AudiomothR (version ",
+  paste(unique(stats::na.omit(recorders$audiomothr_version)) %|% data$package_version, collapse = ", "),
+  ") and classified with ", if (length(models)) paste(models, collapse = ", ") else "BirdNET",
+  " through birdnetR (", paste(unique(stats::na.omit(recorders$birdnetr_version)) %|% "version unknown", collapse = ", "),
+  "). BirdNET analyses the audio in 3 s windows and returns, for each one, the proposed species and their confidence. ",
+  if (any(recorders$location_filter %in% TRUE))
+    "Only the species expected at the location and the week of the year of each recording were considered (BirdNET metadata model). " else "",
+  "A detection has *no doubts* when BirdNET proposed no other species in the same window. ",
+  "Times are local time (", paste(unique(recorders$time_zone), collapse = ", "), ").")
+
+kable_md(data.frame(
+  Recorder = esc(recorders$recorder), Model = recorders$model %|% "–",
+  `Location filter` = ifelse(recorders$location_filter %in% TRUE,
+                             paste0("Yes (≥ ", num(recorders$location_threshold), ")"),
+                             ifelse(is.na(recorders$location_filter), "–", "No")),
+  Sensitivity = num(recorders$sensitivity, 1), `Overlap (s)` = num(recorders$overlap, 1),
+  `Analysis date` = substr(recorders$analysis_date %|% "–", 1, 10), check.names = FALSE))
+
+if (!is.null(data$observation_criteria)) {
+  oc <- data$observation_criteria
+  paragraph("Records for Observation.org: one per species and day, with detections of confidence ≥ ",
+            paste(unique(num(oc$min_confidence)), collapse = "/"), " and at least ",
+            paste(unique(oc$min_detections), collapse = "/"), " detections that day",
+            if (any(oc$validation %in% TRUE)) ", plus the records validated by ear" else "", ".")
+}
+paragraph("Report created on ", data$generated, " with ", data$r_version, ".")
+```

@@ -1,0 +1,30 @@
+AudiomothR is licensed under the GNU General Public License (>= 3).
+Copyright holders: the authors listed in DESCRIPTION.
+
+The package includes data and code from third parties:
+
+1. IOC World Bird List v15.2
+   Files: inst/extdata/taxonomy/ioc_15.2_birds.csv.gz and the IOC names of
+   inst/extdata/taxonomy/birdnet_v2.4_to_ioc_15.2.csv.gz.
+   Gill F, D Donsker & P Rasmussen (Eds). 2026. IOC World Bird List (v15.2).
+   https://www.worldbirdnames.org
+   Licensed under a Creative Commons Attribution 3.0 Unported License
+   (https://creativecommons.org/licenses/by/3.0/).
+
+2. BirdNET v2.4 labels
+   The scientific and English names of inst/extdata/taxonomy/
+   birdnet_v2.4_to_ioc_15.2.csv.gz come from the labels of the BirdNET v2.4
+   model (https://zenodo.org/records/15050749), by the K. Lisa Yang Center
+   for Conservation Bioacoustics (Cornell Lab of Ornithology) and Chemnitz
+   University of Technology, licensed under CC BY-NC-SA 4.0. The models
+   themselves are not distributed with AudiomothR: birdnetR downloads them.
+
+3. Values accepted by Observation.org
+   File: inst/extdata/observation_values.csv. Values of the columns method,
+   counting method and activity of the Observation.org import example
+   (observations-import-example.xlsx, https://observation.org), in Spanish.
+
+4. Biosonora
+   The reading of CONFIG.TXT and of the metadata of WAV files (R/config.R,
+   R/wav.R) was adapted from code of the Biosonora project, by Antonio
+   Canepa-Oneto (author and maintainer of AudiomothR).

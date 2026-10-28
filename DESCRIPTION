@@ -1,33 +1,44 @@
 Package: AudiomothR
-Title: Procesamiento Acústico de Grabaciones AudioMoth con BirdNET
-Version: 0.2.0
-Authors@R:
+Title: Acoustic Processing of 'AudioMoth' Recordings with 'BirdNET'
+Version: 0.3.0
+Authors@R: c(
     person("Antonio", "Canepa-Oneto", role = c("aut", "cre"),
-           email = "ajcanepa@gmail.com")
-Description: Lee las tarjetas de las grabadoras 'AudioMoth' (Hill et al.
-    2018) <doi:10.1111/2041-210X.12955> ('CONFIG.TXT' y subcarpetas
-    diarias), prepara los audios y los analiza con 'BirdNET' (Kahl et al.
-    2021) <doi:10.1016/j.ecoinf.2021.101236> mediante 'birdnetR'. Guarda
-    las detecciones en CSV, las convierte al formato de importación de
-    'Observation.org' y extrae ejemplos de alta confianza de las especies
-    elegidas, con su audio y un vídeo del espectrograma. Crea además un
-    informe en PDF con 'Quarto' de una o varias grabadoras, con mapa,
-    estado de las grabaciones y especies detectadas.
+           email = "ajcanepa@gmail.com"),
+    person("Patricia", "de la Fuente Gamero", role = "aut"),
+    person("José Antonio", "Barbero-Aparicio", role = "aut"),
+    person("Claudia", "Fernández-Ruiz", role = "aut"),
+    person("Alicia", "Olivares", role = "aut"),
+    person("Raúl", "Marticorena-Sánchez", role = "aut")
+  )
+Description: Reads the cards of 'AudioMoth' recorders (Hill et al. 2018)
+    <doi:10.1111/2041-210X.12955> ('CONFIG.TXT' file and daily folders),
+    prepares the audio and analyses it with 'BirdNET' (Kahl et al. 2021)
+    <doi:10.1016/j.ecoinf.2021.101236> through 'birdnetR'. Saves the
+    detections as CSV files, extracts high-confidence examples of the chosen
+    species with their audio and a video of the spectrogram, creates a web
+    page to validate the records by ear, and converts the detections into
+    the import format of 'Observation.org', translating the species names
+    into the IOC World Bird List. It also creates a PDF report with 'Quarto'
+    of one or several recorders, with a map, the state of the recordings and
+    the detected species.
 License: GPL (>= 3)
+Copyright: See file COPYRIGHTS (IOC World Bird List, Observation.org values
+    and code adapted from Biosonora).
 URL: https://github.com/ajcanepa/AudiomothR
 BugReports: https://github.com/ajcanepa/AudiomothR/issues
 Encoding: UTF-8
-Language: es
+Language: en-GB
 Depends:
     R (>= 4.1)
 Imports:
     birdnetR (>= 0.3.2),
-    cli,
+    cli (>= 3.0.0),
     grDevices,
-    parallel,
     graphics,
-    processx,
-    reticulate,
+    parallel,
+    processx (>= 3.5.0),
+    reticulate (>= 1.41),
+    rlang,
     stats,
     tools,
     tuneR,
@@ -35,7 +46,6 @@ Imports:
 Suggests:
     knitr,
     maptiles,
-    readxl,
     rmarkdown,
     rstudioapi,
     seewave,
@@ -44,9 +54,9 @@ Suggests:
     terra,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
-SystemRequirements: ffmpeg (conversión de audio y vídeos), Python (lo
-    instala birdnetR automáticamente con uv), Quarto (>= 1.4; solo para el
-    informe en PDF, RStudio y Positron ya lo incluyen)
+SystemRequirements: ffmpeg (audio conversion, clips and videos), Python
+    (installed automatically by birdnetR with uv), Quarto (>= 1.4; only for
+    the PDF report; RStudio and Positron already include it)
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 Config/roxygen2/version: 8.1.0

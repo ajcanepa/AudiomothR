@@ -1,173 +1,293 @@
-# Exportación de las detecciones al formato de importación de Observation.org.
+# Export of the detections in the import format of Observation.org.
 #
-# Combina las reglas de los dos proyectos anteriores:
-#   - Columnas, orden y codificación exactos de observations-import-example.xlsx
-#     y equivalencia de nombres BirdNET (eBird/Clements) -> IOC (Biosonora).
-#   - Un registro por especie y día (hora local), solo con detecciones de
-#     confianza >= 0,8 y al menos 2 detecciones ese día; notas con el mismo
-#     comentario fijo "ID mediante BirdNET <versión>" (informes de la caja
-#     acústica).
-#   - CSV en UTF-8 sin BOM, separado por comas, fechas AAAA-MM-DD, horas HH:MM,
-#     coordenadas en grados decimales con punto.
+#   - Exact columns, order and encoding of observations-import-example.xlsx
+#     (Observation.org) and translation of BirdNET names (eBird/Clements) into
+#     IOC names (Biosonora; tables rebuilt in data-raw/build_taxonomy.R).
+#   - One record per species and day (local time), only with detections of
+#     confidence >= 0.8 and at least 2 detections that day, unless the record
+#     was validated by ear (create_validation()).
+#   - CSV in UTF-8 without BOM, comma separated, dates YYYY-MM-DD, times HH:MM
+#     and coordinates in decimal degrees with a decimal point.
 
-# Columnas exactas del ejemplo de Observation.org, en su orden
-columnas_observation <- c(
+# Exact columns of the Observation.org example, in their order
+observation_columns <- c(
   "date", "time", "scientific name", "lat", "lng", "accuracy", "number", "notes",
   "sex", "is certain", "is escape", "activity", "life stage", "method",
   "counting method", "related species", "external reference", "obscurity", "embargo date"
 )
 
-#' Exporta las detecciones al formato de Observation.org
+#' Exports the detections in the format of Observation.org
 #'
-#' Agrupa las detecciones en un registro por especie y día. Las especies cuyo
-#' nombre científico no existe en la Lista IOC (la que usa Observation.org) y
-#' no tienen equivalencia conocida, y las etiquetas que no son aves (ruido,
-#' voz humana...), se dejan fuera y se avisa de ellas.
+#' Groups the detections into one record per species and day. BirdNET names
+#' are translated into the IOC World Bird List v15.2 (the one used by
+#' Observation.org); classes that are not birds (noise, human voice, frogs,
+#' insects...) are left out, and so are, with a warning, the birds without an
+#' IOC name. Species that IOC has split are translated according to the
+#' location when the rule is clear (e.g. *Cecropis daurica* is *Cecropis
+#' rufula* in Europe) and are reported otherwise.
 #'
-#' La columna `notes` siempre lleva el mismo comentario fijo, "ID mediante
-#' BirdNET `<versión>`" (la versión usada en [analizar_birdnet()]), igual en
-#' todas las filas de una misma exportación.
+#' **Validation.** When the records have been checked by ear with
+#' [create_validation()], the decisions are applied: records marked as not
+#' valid are left out, relabelled ones are exported under their new name, and
+#' records marked as valid are exported even if they do not meet
+#' `min_confidence` or `min_detections` (and, by default, with `is certain =
+#' True`).
 #'
-#' @param am Objeto `audiomoth` con detecciones (ver [analizar_birdnet()]).
-#' @param confianza_minima Confianza mínima de las detecciones que cuentan.
-#' @param min_detecciones Detecciones mínimas de la especie en el día.
-#' @param solo_sin_dudas Contar solo las detecciones sin otra especie en la
-#'   misma ventana.
-#' @param especies Limitar a estas especies (nombre científico o común).
-#' @param desde,hasta Fechas locales (AAAA-MM-DD) que limitan el periodo.
-#' @param method,counting_method,activity Valores fijos de esas columnas. Se
-#'   comprueban contra los valores que admite Observation.org para aves.
-#' @param is_certain `"True"` o `"False"`. Por defecto `"False"`: la
-#'   identificación es automática y no está revisada por una persona.
-#' @param equivalencias Vector con nombre de equivalencias propias
-#'   `c("nombre BirdNET" = "nombre IOC")`, que tienen prioridad.
-#' @param archivo CSV de salida. Por defecto
-#'   `<salida>/AudioMoth_<ID>_observation.csv`.
-#' @return Invisiblemente, el data.frame exportado (columnas de
-#'   Observation.org).
+#' **Hand-edited files.** If `AudioMoth_<ID>_observation.csv` has been edited
+#' since it was exported, it is not overwritten (unless `overwrite = TRUE`):
+#' the new export is saved with the date and time in its name. The criteria
+#' used are saved next to it, in `AudioMoth_<ID>_observation.json`.
+#'
+#' @param am An `audiomoth` object with detections (see [analyze_birdnet()]).
+#'   The location (`lat`, `lng`, `accuracy`) is that of `am`.
+#' @param min_confidence Minimum confidence of the detections that count.
+#' @param min_detections Minimum number of detections (events) of the
+#'   species in the day.
+#' @param no_doubts_only Count only the detections without another species in
+#'   the same window.
+#' @param species Only these species (scientific or common name of BirdNET,
+#'   or IOC name).
+#' @param from,to Local dates (`"2026-10-07"` or `"07/10/2026"`) that limit
+#'   the period.
+#' @param validation Use the validation of [create_validation()]: `NULL`
+#'   (default) when there is one, `TRUE` to require it, `FALSE` to ignore it.
+#' @param validated_only Export only the records validated as correct.
+#' @param method,counting_method,activity Fixed values of those columns,
+#'   checked against the values that Observation.org accepts for birds (in
+#'   Spanish, as in its import example).
+#' @param is_certain `"auto"` (default: `"True"` for the records validated by
+#'   ear and `"False"` for the rest, since the identification is automatic),
+#'   `"True"` or `"False"`.
+#' @param notes Text of the column `notes`. By default `"Identified with
+#'   BirdNET <version>"` (`"ID mediante BirdNET <version>"` when `language`
+#'   is Spanish), followed by the best detection of the record.
+#' @param language Language of the default notes.
+#' @param equivalences Named vector of own equivalences
+#'   `c("BirdNET name" = "IOC name")`, which take priority.
+#' @param file Output CSV. By default `<output>/AudioMoth_<ID>_observation.csv`.
+#' @param overwrite Overwrite the CSV even if it has been edited by hand.
+#' @return Invisibly, the exported data frame (columns of Observation.org).
+#' @examples
+#' card <- system.file("extdata", "example", "card", package = "AudiomothR")
+#' am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
+#' am$detections <- read_detections(system.file("extdata", "example",
+#'   "birdnet_detections.csv", package = "AudiomothR"))
+#' obs <- export_observation(am, min_confidence = 0.5, min_detections = 1)
+#' obs[, c("date", "time", "scientific name", "is certain")]
 #' @export
-exportar_observation <- function(am, confianza_minima = 0.8, min_detecciones = 2,
-                                 solo_sin_dudas = FALSE, especies = NULL,
-                                 desde = NULL, hasta = NULL,
-                                 method = "O\u00eddo", counting_method = "Sin especificar",
-                                 activity = "", is_certain = "False",
-                                 equivalencias = NULL, archivo = NULL) {
-  comprobar_audiomoth(am)
-  method <- validar_valor_observation("method", method)
-  counting_method <- validar_valor_observation("counting method", counting_method)
-  activity <- validar_valor_observation("activity", activity)
-  if (!is_certain %in% c("True", "False")) abortar("{.arg is_certain} debe ser {.val True} o {.val False}.")
+export_observation <- function(am, min_confidence = 0.8, min_detections = 2, no_doubts_only = FALSE,
+                               species = NULL, from = NULL, to = NULL, validation = NULL,
+                               validated_only = FALSE, method = "O\u00eddo",
+                               counting_method = "Sin especificar", activity = "",
+                               is_certain = c("auto", "True", "False"), notes = NULL,
+                               language = default_language(), equivalences = NULL,
+                               file = NULL, overwrite = FALSE) {
+  check_audiomoth(am)
+  check_confidence(min_confidence, "min_confidence")
+  check_number(min_detections, "min_detections", 1, integer = TRUE)
+  check_flag(no_doubts_only, "no_doubts_only")
+  check_flag(validated_only, "validated_only")
+  check_flag(overwrite, "overwrite")
+  if (!is.null(validation)) check_flag(validation, "validation")
+  method <- check_observation_value("method", method)
+  counting_method <- check_observation_value("counting method", counting_method)
+  activity <- check_observation_value("activity", activity)
+  is_certain <- check_choice(is_certain, c("auto", "True", "False"), "is_certain")
+  equivalences <- check_equivalences(equivalences)
+  from <- parse_date_arg(from, "from")
+  to <- parse_date_arg(to, "to")
 
-  d <- leer_detecciones(am)
-  d <- d[d$confianza >= confianza_minima, , drop = FALSE]
-  if (solo_sin_dudas) d <- d[d$sin_dudas, , drop = FALSE]
-  if (!is.null(especies)) d <- d[filtrar_especies(d, especies), , drop = FALSE]
-  if (!is.null(desde)) d <- d[d$fecha_local >= desde, , drop = FALSE]
-  if (!is.null(hasta)) d <- d[d$fecha_local <= hasta, , drop = FALSE]
-
-  tax <- nombres_ioc(unique(d$nombre_cientifico), equivalencias)
-  sin_ioc <- tax[is.na(tax$ioc), , drop = FALSE]
-  if (nrow(sin_ioc)) {
-    cli::cli_warn(c("Se dejan fuera {nrow(sin_ioc)} nombre{?s} sin correspondencia en la Lista IOC de Observation.org:",
-                    stats::setNames(sin_ioc$birdnet, rep("*", nrow(sin_ioc))),
-                    "i" = "Si alguno es una especie, indique su nombre IOC con {.arg equivalencias}."))
+  d <- read_detections(am)
+  d <- d[d$is_species, , drop = FALSE]
+  u <- am$location
+  moved <- nrow(d) && (any(abs(d$lat - u$lat) > 1e-6) || any(abs(d$lon - u$lon) > 1e-6))
+  if (moved) inform("i" = "The current location of {.arg am} ({u$lat}, {u$lon}) is used, not the one of the analysis.")
+  if (u$precision_m > 1000) {
+    cli::cli_warn("The precision of the location (\u00b1{u$precision_m} m) is above 1000 m, the largest accuracy of Observation.org: 1000 is exported.")
   }
-  d$ioc <- tax$ioc[match(d$nombre_cientifico, tax$birdnet)]
+
+  # Validation decisions: invalid records out, relabelled ones renamed
+  d$validated <- FALSE
+  val <- if (isFALSE(validation)) NULL else read_validation(am, required = isTRUE(validation), quiet = TRUE)
+  if (!is.null(val)) {
+    d$record_id <- record_id(d$local_date, d$scientific_name)
+    k <- match(d$record_id, val$record_id)
+    decision <- val$decision[k]
+    renamed <- !is.na(val$new_name[k])
+    d$scientific_name[renamed] <- val$new_name[k][renamed]
+    d$validated <- decision %in% "valid" | renamed
+    d <- d[!decision %in% "invalid", , drop = FALSE]
+    inform("i" = "Validation applied ({.file {attr(val, 'file')}}): {sum(val$decision == 'valid', na.rm = TRUE)} valid, {sum(val$decision == 'invalid', na.rm = TRUE)} not valid, {sum(!is.na(val$new_name))} relabelled.")
+  }
+
+  keep <- d$validated | (d$confidence >= min_confidence & (!no_doubts_only | d$no_doubts))
+  if (validated_only) keep <- d$validated
+  d <- d[keep, , drop = FALSE]
+  if (!is.null(species)) {
+    found <- match_species(species, d)
+    warn_unknown_species(species[lengths(found) == 0], d)
+    d <- d[d$scientific_name %in% unlist(found), , drop = FALSE]
+  }
+  if (!is.null(from)) d <- d[as.Date(d$local_date) >= from, , drop = FALSE]
+  if (!is.null(to)) d <- d[as.Date(d$local_date) <= to, , drop = FALSE]
+
+  tax <- ioc_names(unique(d$scientific_name), u$lat, u$lon, equivalences)
+  report_taxonomy(tax)
+  d$ioc <- tax$ioc[match(d$scientific_name, tax$birdnet)]
   d <- d[!is.na(d$ioc), , drop = FALSE]
 
-  grupos <- split(d, list(d$ioc, d$fecha_local), drop = TRUE)
-  grupos <- grupos[vapply(grupos, nrow, integer(1)) >= min_detecciones]
-  filas <- lapply(grupos, function(x) {
-    x <- x[order(x$hora_local, x$inicio_s), , drop = FALSE]
-    mejor <- x[which.max(x$confianza), ]
-    primera <- substr(x$hora_local[1], 1, 5)
-    nota <- sprintf("ID mediante %s", x$modelo[1])
+  d$instant <- as.POSIXct(d$recording_start_utc, tz = "UTC") + d$start_s
+  groups <- split(d, list(d$ioc, d$local_date), drop = TRUE)
+  groups <- groups[vapply(groups, function(x) {
+    any(x$validated) || length(unique(paste(x$file, x$event))) >= min_detections
+  }, logical(1))]
+  model <- unique(d$model)[1] %||% "BirdNET v2.4"
+  spanish <- startsWith(language, "es")
+  rows <- lapply(groups, function(x) {
+    x <- x[order(x$instant), , drop = FALSE]
+    best <- x[which.max(x$confidence), ]
+    validated <- any(x$validated)
+    note <- notes %||% paste0(
+      if (spanish) "ID mediante " else "Identified with ", model,
+      if (validated) (if (spanish) ", validado escuchando la grabaci\u00f3n" else ", checked by listening to the recording") else "",
+      sprintf(if (spanish) " (mejor detecci\u00f3n: %s, %g s, confianza %.2f)" else " (best detection: %s, %g s, confidence %.2f)",
+              best$file, best$start_s, best$confidence))
     data.frame(
-      date = x$fecha_local[1],
-      time = primera,
+      date = x$local_date[1],
+      time = format(x$instant[1], "%H:%M", tz = am$time_zone),
       scientific_name = x$ioc[1],
-      lat = round(x$lat[1], 6),
-      lng = round(x$lon[1], 6),
-      accuracy = min(1000L, max(1L, as.integer(x$precision_m[1]))),
+      lat = round(u$lat, 6),
+      lng = round(u$lon, 6),
+      accuracy = min(1000L, max(1L, as.integer(u$precision_m))),
       number = 1L,
-      notes = nota,
+      notes = note,
       sex = NA_character_,
-      is_certain = is_certain,
+      is_certain = if (is_certain == "auto") (if (validated) "True" else "False") else is_certain,
       is_escape = "False",
       activity = if (nzchar(activity)) activity else NA_character_,
       life_stage = NA_character_,
       method = method,
       counting_method = counting_method,
       related_species = NA_character_,
-      external_reference = referencia_externa(mejor),
+      external_reference = sprintf("AudioMoth_%s_%s_%s", am$config$device_id,
+                                   gsub("-", "", x$local_date[1]), safe_name(x$ioc[1])),
       obscurity = NA_character_,
       embargo_date = NA_character_,
       stringsAsFactors = FALSE
     )
   })
-  out <- if (length(filas)) do.call(rbind, filas) else
-    as.data.frame(matrix(character(), ncol = length(columnas_observation)))
-  names(out) <- columnas_observation
+  out <- if (length(rows)) do.call(rbind, rows) else
+    as.data.frame(matrix(character(), ncol = length(observation_columns)))
+  names(out) <- observation_columns
   if (nrow(out)) out <- out[order(out$date, out$time, out$`scientific name`), , drop = FALSE]
   rownames(out) <- NULL
 
-  archivo <- archivo %||% archivo_salida(am, "observation")
-  escribir_csv(out, archivo)
-  cli::cli_inform(c("v" = "{nrow(out)} registro{?s} ({length(unique(out$`scientific name`))} especies) para Observation.org en {.file {archivo}}.",
-                    "i" = "Criterios: confianza \u2265 {confianza_minima}, \u2265 {min_detecciones} detecciones por especie y d\u00eda{if (solo_sin_dudas) ', solo detecciones sin dudas' else ''}."))
+  file <- file %||% output_file(am, "observation")
+  file <- protect_edited(file, overwrite)
+  write_csv(out, file)
+  criteria <- list(file = basename(file), exported = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+                   min_confidence = min_confidence, min_detections = min_detections,
+                   no_doubts_only = no_doubts_only, validation = !is.null(val),
+                   validated_records = sum(out$`is certain` == "True"), records = nrow(out),
+                   md5 = unname(tools::md5sum(file)))
+  writeLines(to_json(criteria), sub("\\.csv$", ".json", file))
+  inform(c("v" = "{nrow(out)} record{?s} ({length(unique(out$`scientific name`))} species) for Observation.org in {.file {file}}.",
+           "i" = "Criteria: confidence \u2265 {min_confidence}, \u2265 {min_detections} detection{?s} per species and day{if (no_doubts_only) ', only detections without doubts' else ''}{if (!is.null(val)) '; records validated by ear always included' else ''}."))
   invisible(out)
 }
 
-#' Referencia de la mejor detección: "AudioMoth_<ID>_<AAAAMMDD_HHMMSS>_<s>s"
+#' Does not overwrite an export that has been edited by hand
 #' @noRd
-referencia_externa <- function(x) {
-  nombre <- parsear_nombre_audiomoth(x$archivo)$fecha_texto
-  if (is.na(nombre)) nombre <- tools::file_path_sans_ext(x$archivo)
-  sprintf("AudioMoth_%s_%s_%gs", x$device_id, nombre, x$inicio_s)
+protect_edited <- function(file, overwrite) {
+  json <- sub("\\.csv$", ".json", file)
+  if (overwrite || !file.exists(file) || !file.exists(json)) return(file)
+  old <- tryCatch(from_json_md5(readLines(json, warn = FALSE)), error = function(e) NA)
+  if (!is.na(old) && identical(old, unname(tools::md5sum(file)))) return(file)
+  new <- sub("\\.csv$", format(Sys.time(), "_%Y%m%d_%H%M%S.csv"), file)
+  cli::cli_warn(c("{.file {basename(file)}} has been edited since it was exported: it is kept, and the new export is saved as {.file {basename(new)}}.",
+                  "i" = "Use {.code overwrite = TRUE} to replace it."))
+  new
 }
 
-#' Nombre IOC (Observation.org) de cada nombre científico de BirdNET
-#'
-#' Orden: equivalencia propia > mismo nombre en IOC > equivalencia
-#' Clements -> IOC conocida > sin correspondencia (NA).
+from_json_md5 <- function(lines) {
+  m <- regmatches(paste(lines, collapse = ""), regexec("\"md5\"\\s*:\\s*\"([0-9a-f]+)\"", paste(lines, collapse = "")))[[1]]
+  if (length(m)) m[2] else NA_character_
+}
+
+#' Messages about the names that do not reach Observation.org
 #' @noRd
-nombres_ioc <- function(nombres, equivalencias = NULL) {
-  ioc <- tabla_ioc()
-  clem <- leer_csv(ruta_paquete("extdata", "taxonomia", "clements_a_ioc_15.2.csv"))
-  destino <- ifelse(nombres %in% ioc$ioc_name, nombres, NA_character_)
-  en_clem <- is.na(destino) & nombres %in% clem$clements_name
-  destino[en_clem] <- clem$ioc_name[match(nombres[en_clem], clem$clements_name)]
-  if (length(equivalencias)) {
-    propia <- nombres %in% names(equivalencias)
-    destino[propia] <- unname(equivalencias[nombres[propia]])
+report_taxonomy <- function(tax) {
+  not_bird <- tax$birdnet[tax$match == "not_bird"]
+  if (length(not_bird)) inform("i" = "Left out because they are not birds: {.val {not_bird}}.")
+  none <- tax$birdnet[tax$match == "none"]
+  if (length(none)) {
+    cli::cli_warn(c("{length(none)} bird{?s} without a name in the IOC World Bird List 15.2 {?is/are} left out: {.val {none}}.",
+                    "i" = "Give its IOC name with {.arg equivalences}, e.g. {.code equivalences = c(\"{none[1]}\" = \"IOC name\")}."))
   }
-  data.frame(birdnet = nombres, ioc = destino, stringsAsFactors = FALSE)
+  noted <- tax[!is.na(tax$note), , drop = FALSE]
+  if (nrow(noted)) {
+    cli::cli_warn(c("Check these species, whose concept differs between BirdNET and IOC:",
+                    stats::setNames(sprintf("%s \u2192 %s: %s", noted$birdnet, noted$ioc, noted$note),
+                                    rep("*", nrow(noted)))))
+  }
 }
 
-tabla_ioc <- function() {
-  if (is.null(cache$ioc)) cache$ioc <- leer_csv(ruta_paquete("extdata", "taxonomia", "ioc_15.2_aves.csv"))
-  cache$ioc
-}
-
-cache <- new.env(parent = emptyenv())
-
-#' Comprueba un valor fijo contra los admitidos por Observation.org para aves
+#' A date given as "YYYY-MM-DD" or "DD/MM/YYYY"
 #' @noRd
-validar_valor_observation <- function(columna, valor) {
-  if (is.null(valor) || is.na(valor) || !nzchar(valor)) return("")
-  v <- leer_csv(ruta_paquete("extdata", "observation_valores.csv"))
-  admitidos <- v$valor[v$columna == columna]
-  hit <- admitidos[tolower(admitidos) == tolower(valor)]
+parse_date_arg <- function(x, name) {
+  if (is.null(x)) return(NULL)
+  if (inherits(x, "Date") && length(x) == 1) return(x)
+  date <- if (is.character(x) && length(x) == 1) {
+    tryCatch(as.Date(x, tryFormats = c("%Y-%m-%d", "%d/%m/%Y", "%Y/%m/%d")), error = function(e) NA)
+  } else NA
+  if (is.na(date)) abort("{.arg {name}} must be a date such as {.val 2026-10-07} or {.val 07/10/2026}.")
+  date
+}
+
+#' Checks a fixed value against the ones Observation.org accepts for birds
+#' @noRd
+check_observation_value <- function(column, value) {
+  if (is.null(value) || length(value) == 0 || is.na(value) || !nzchar(value)) return("")
+  v <- read_csv(package_file("extdata", "observation_values.csv"))
+  allowed <- v$value[v$column == column]
+  hit <- allowed[tolower(allowed) == tolower(value)]
   if (length(hit) == 0) {
-    abortar("{.val {valor}} no es un valor v\u00e1lido de {.field {columna}} en Observation.org.",
-            "i" = "Valores admitidos: {.val {sort(admitidos)}}.")
+    abort("{.val {value}} is not a valid value of {.field {column}} in Observation.org.",
+          "i" = "Allowed values: {.val {sort(allowed)}}.")
   }
   hit[1]
 }
 
-#' Filas cuyas especies coinciden (sin distinguir mayúsculas) por nombre científico o común
+#' Minimal JSON encoder (lists of scalars and data frames of scalars)
 #' @noRd
-filtrar_especies <- function(d, especies) {
-  e <- tolower(trimws(especies))
-  tolower(d$nombre_cientifico) %in% e | tolower(d$nombre_comun) %in% e
+to_json <- function(x) {
+  esc <- function(s) {
+    s <- gsub("\\\\", "\\\\\\\\", s)
+    s <- gsub("\"", "\\\\\"", s)
+    s <- gsub("\n", "\\\\n", s)
+    s <- gsub("\r", "\\\\r", s)
+    s <- gsub("\t", "\\\\t", s)
+    s <- gsub("</", "<\\\\/", s, fixed = TRUE)
+    paste0("\"", s, "\"")
+  }
+  value <- function(v) {
+    if (is.null(v) || length(v) == 0) return("null")
+    if (is.data.frame(v)) return(to_json(v))
+    if (is.list(v)) return(to_json(v))
+    if (length(v) > 1) return(paste0("[", paste(vapply(v, value, ""), collapse = ","), "]"))
+    if (is.na(v)) return("null")
+    if (is.logical(v)) return(if (v) "true" else "false")
+    if (is.numeric(v)) return(format(v, digits = 15, scientific = FALSE, trim = TRUE))
+    esc(enc2utf8(as.character(v)))
+  }
+  if (is.data.frame(x)) {
+    rows <- vapply(seq_len(nrow(x)), function(i) {
+      paste0("{", paste(esc(names(x)), vapply(x, function(col) value(col[[i]]), ""), sep = ":", collapse = ","), "}")
+    }, "")
+    return(paste0("[", paste(rows, collapse = ",\n"), "]"))
+  }
+  if (is.list(x) && !is.null(names(x))) {
+    return(paste0("{", paste(esc(names(x)), vapply(x, value, ""), sep = ":", collapse = ",\n"), "}"))
+  }
+  value(x)
 }

@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AudiomothR validation</title>
+<!--
+  Validation page created by AudiomothR::create_validation().
+  It works offline in any browser: the audio clips and spectrograms are in
+  the clips/ folder next to this file. Decisions are kept in this browser
+  (localStorage) and are exported with the "Download decisions" button as
+  AudioMoth_<ID>_validation.csv, which AudiomothR::read_validation() and
+  AudiomothR::export_observation() read.
+-->
+<style>
+:root {
+  --bg: #f6f7f8; --card: #ffffff; --text: #1d2327; --muted: #5f6b73; --line: #d9dee2;
+  --accent: #2e6f8e; --valid: #2f855a; --valid-bg: #e6f4ea; --invalid: #c0392b; --invalid-bg: #fbe9e7;
+  --unsure: #b7791f; --unsure-bg: #fdf3dc; --renamed: #6b46c1; --renamed-bg: #efe9fb; --focus: #f0b429;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14181b; --card: #1d2327; --text: #e8ecef; --muted: #9aa7b0; --line: #333d44;
+    --accent: #6fb3d2; --valid: #68d391; --valid-bg: #1f3a2b; --invalid: #fc8181; --invalid-bg: #45231f;
+    --unsure: #f6c35b; --unsure-bg: #40341b; --renamed: #b794f4; --renamed-bg: #2f2645; --focus: #f0b429;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+header { position: sticky; top: 0; z-index: 5; background: var(--card); border-bottom: 1px solid var(--line);
+  padding: 12px 16px; }
+h1 { font-size: 1.15rem; margin: 0 0 2px; }
+.sub { color: var(--muted); font-size: .9rem; }
+.bar { height: 6px; background: var(--line); border-radius: 3px; margin: 10px 0 8px; overflow: hidden; }
+.bar > div { height: 100%; background: var(--accent); width: 0; transition: width .2s; }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tools select, .tools input[type=search] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--card); color: var(--text); font: inherit; }
+button { font: inherit; cursor: pointer; border-radius: 6px; border: 1px solid var(--line);
+  background: var(--card); color: var(--text); padding: 6px 12px; }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+.counts { color: var(--muted); font-size: .9rem; margin-left: auto; }
+main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.help { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 16px;
+  margin-bottom: 16px; font-size: .92rem; }
+.help summary { cursor: pointer; font-weight: 600; }
+kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; font-size: .85em; }
+.card { background: var(--card); border: 1px solid var(--line); border-left: 6px solid var(--line);
+  border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; scroll-margin-top: 140px; }
+.card.current { outline: 3px solid var(--focus); outline-offset: 1px; }
+.card.valid { border-left-color: var(--valid); background: var(--valid-bg); }
+.card.invalid { border-left-color: var(--invalid); background: var(--invalid-bg); }
+.card.unsure { border-left-color: var(--unsure); background: var(--unsure-bg); }
+.card.renamed { border-left-color: var(--renamed); background: var(--renamed-bg); }
+.head { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.rank { color: var(--muted); font-variant-numeric: tabular-nums; }
+.name { font-weight: 700; font-size: 1.05rem; }
+.sci { font-style: italic; color: var(--muted); }
+.date { margin-left: auto; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+.chip { font-size: .82rem; border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; color: var(--muted); }
+.chip.warn { border-color: var(--unsure); color: var(--unsure); font-weight: 600; }
+.clips { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.clip { border: 1px solid var(--line); border-radius: 6px; padding: 6px; background: var(--card); }
+.clip img { width: 100%; display: block; border-radius: 4px; }
+.clip audio { width: 100%; margin-top: 4px; }
+.clip .cap { font-size: .8rem; color: var(--muted); }
+.decide { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+.decide button.on.v { background: var(--valid); border-color: var(--valid); color: #fff; }
+.decide button.on.i { background: var(--invalid); border-color: var(--invalid); color: #fff; }
+.decide button.on.u { background: var(--unsure); border-color: var(--unsure); color: #fff; }
+.decide input { flex: 1 1 220px; min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--card); color: var(--text); font: inherit; }
+.decide input.bad { border-color: var(--invalid); }
+.empty { color: var(--muted); text-align: center; padding: 40px 0; }
+@media (max-width: 600px) { .date { margin-left: 0; } .counts { margin-left: 0; width: 100%; } }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Validation</h1>
+  <div class="sub" id="subtitle"></div>
+  <div class="bar"><div id="progress"></div></div>
+  <div class="tools">
+    <select id="filter" aria-label="Show">
+      <option value="all">All records</option>
+      <option value="pending">Pending</option>
+      <option value="valid">Valid</option>
+      <option value="invalid">Not valid</option>
+      <option value="unsure">Unsure</option>
+      <option value="renamed">Relabelled</option>
+    </select>
+    <input type="search" id="search" placeholder="Search species" aria-label="Search species">
+    <button class="primary" id="download">Download decisions (CSV)</button>
+    <button id="load">Load CSV</button>
+    <input type="file" id="file" accept=".csv,text/csv" hidden>
+    <span class="counts" id="counts"></span>
+  </div>
+</header>
+<main>
+  <details class="help" open>
+    <summary>How to validate</summary>
+    <p>Records (one per species and day) are sorted from the <strong>least plausible</strong> to the most
+      plausible: species unusual at this site and week according to BirdNET, or with low confidence, come first.
+      Listen to the clips (the dashed lines of the spectrogram mark the 3&nbsp;s window of the detection) and decide:</p>
+    <ul>
+      <li><strong>Valid</strong> (<kbd>V</kbd>): the species is right. It will be exported to Observation.org even
+        with a single detection, marked as certain.</li>
+      <li><strong>Not valid</strong> (<kbd>N</kbd>): it is not that species. The record will not be exported.</li>
+      <li><strong>Unsure</strong> (<kbd>U</kbd>): the usual criteria of <code>export_observation()</code> apply.</li>
+      <li><strong>Other species</strong>: type its name and pick it from the list; the record is exported under
+        that species.</li>
+    </ul>
+    <p>Move with <kbd>J</kbd>/<kbd>K</kbd> (or <kbd>&darr;</kbd>/<kbd>&uarr;</kbd>), play the first clip with
+      <kbd>Space</kbd>. Your decisions are kept in this browser. When you finish (or to continue on another
+      computer), press <strong>Download decisions</strong> and run <code>export_observation(am)</code> in R: it finds
+      the file in the validation folder or in your Downloads folder.</p>
+  </details>
+  <div id="list"></div>
+</main>
+<datalist id="species"></datalist>
+<script id="data" type="application/json">__AUDIOMOTHR_DATA__</script>
+<script>
+(function () {
+  "use strict";
+  var data = JSON.parse(document.getElementById("data").textContent);
+  var key = "audiomothr-validation:" + data.device_id + ":" + data.created;
+  var records = data.records;
+  var byId = {};
+  records.forEach(function (r) { byId[r.record_id] = r; });
+
+  // Decisions: those embedded when the page was created, then those kept in this browser
+  var state = {};
+  records.forEach(function (r) {
+    state[r.record_id] = { decision: r.decision || "", new_name: r.new_name || "", comment: r.comment || "",
+                           reviewed_at: r.reviewed_at || "" };
+  });
+  try {
+    var saved = JSON.parse(localStorage.getItem(key) || "{}");
+    Object.keys(saved).forEach(function (id) { if (state[id]) state[id] = saved[id]; });
+  } catch (e) { /* storage not available: decisions live until the page is closed */ }
+  function save() { try { localStorage.setItem(key, JSON.stringify(state)); } catch (e) {} }
+
+  // Species for the "other species" box: "Scientific name — common name"
+  var known = {};
+  var dl = document.getElementById("species");
+  var frag = document.createDocumentFragment();
+  data.species.forEach(function (s) {
+    var label = s.common ? s.scientific + " — " + s.common : s.scientific;
+    known[label.toLowerCase()] = s.scientific;
+    known[s.scientific.toLowerCase()] = s.scientific;
+    var o = document.createElement("option");
+    o.value = label;
+    frag.appendChild(o);
+  });
+  dl.appendChild(frag);
+
+  document.getElementById("title").textContent = "Validation · AudioMoth " + data.device_id;
+  document.getElementById("subtitle").textContent = data.site + " · " + data.period + " · " +
+    records.length + " records (confidence ≥ " + data.min_confidence + ") · created " + data.created;
+
+  function status(id) {
+    var s = state[id];
+    if (s.new_name) return "renamed";
+    return s.decision || "pending";
+  }
+  function pct(x) {
+    if (x === null || x === undefined) return "unknown";
+    return x < 0.001 ? "< 0.1 %" : (100 * x).toFixed(x < 0.1 ? 1 : 0) + " %";
+  }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  var list = document.getElementById("list");
+  var cards = [];
+  records.forEach(function (r, i) {
+    var c = el("section", "card");
+    c.id = "r-" + r.record_id;
+    c.tabIndex = -1;
+    var head = el("div", "head");
+    head.appendChild(el("span", "rank", "#" + (i + 1)));
+    head.appendChild(el("span", "name", r.common_name));
+    head.appendChild(el("span", "sci", r.scientific_name));
+    head.appendChild(el("span", "date", r.date));
+    c.appendChild(head);
+
+    var chips = el("div", "chips");
+    chips.appendChild(el("span", "chip", r.detections + (r.detections === 1 ? " detection" : " detections") +
+                         " in " + r.recordings + (r.recordings === 1 ? " recording" : " recordings")));
+    chips.appendChild(el("span", "chip" + (r.confidence_max < 0.5 ? " warn" : ""), "max. confidence " + r.confidence_max.toFixed(2)));
+    var lp = el("span", "chip" + (r.location_prob !== null && r.location_prob < 0.05 ? " warn" : ""),
+                "expected at the site: " + pct(r.location_prob));
+    lp.title = "Probability of occurrence at this site and week (BirdNET metadata model)";
+    chips.appendChild(lp);
+    if (r.doubts) chips.appendChild(el("span", "chip warn", "BirdNET also proposed: " + r.doubts));
+    if (r.note) chips.appendChild(el("span", "chip warn", r.note));
+    c.appendChild(chips);
+
+    var clips = el("div", "clips");
+    data.clips.filter(function (x) { return x.record_id === r.record_id; }).forEach(function (x) {
+      var b = el("div", "clip");
+      if (x.image) {
+        var img = el("img");
+        img.loading = "lazy";
+        img.src = x.image;
+        img.alt = "Spectrogram of " + x.file;
+        b.appendChild(img);
+      }
+      var a = el("audio");
+      a.controls = true;
+      a.preload = "none";
+      a.src = x.audio;
+      b.appendChild(a);
+      b.appendChild(el("div", "cap", x.time + " · " + x.file + ", " + x.start_s + " s · confidence " + x.confidence.toFixed(2)));
+      clips.appendChild(b);
+    });
+    c.appendChild(clips);
+
+    var dec = el("div", "decide");
+    var bv = el("button", "v", "✓ Valid");
+    var bi = el("button", "i", "✗ Not valid");
+    var bu = el("button", "u", "? Unsure");
+    var other = el("input");
+    other.setAttribute("list", "species");
+    other.placeholder = "Other species (type and choose)";
+    var comment = el("input");
+    comment.placeholder = "Comment";
+    [bv, bi, bu].forEach(function (b) { dec.appendChild(b); });
+    dec.appendChild(other);
+    dec.appendChild(comment);
+    c.appendChild(dec);
+
+    function set(decision) {
+      var s = state[r.record_id];
+      s.decision = s.decision === decision ? "" : decision;
+      if (s.decision !== "valid") { s.new_name = ""; other.value = ""; other.classList.remove("bad"); }
+      s.reviewed_at = new Date().toISOString();
+      update(i); save(); refresh();
+    }
+    bv.onclick = function () { set("valid"); };
+    bi.onclick = function () { set("invalid"); };
+    bu.onclick = function () { set("unsure"); };
+    other.onchange = function () {
+      var v = other.value.trim();
+      var s = state[r.record_id];
+      if (!v) { s.new_name = ""; other.classList.remove("bad"); }
+      else if (known[v.toLowerCase()]) {
+        s.new_name = known[v.toLowerCase()];
+        s.decision = "valid";
+        other.classList.remove("bad");
+      } else { other.classList.add("bad"); return; }
+      s.reviewed_at = new Date().toISOString();
+      update(i); save(); refresh();
+    };
+    comment.onchange = function () { state[r.record_id].comment = comment.value; save(); };
+    c.onclick = function () { setCurrent(i, false); };
+    cards.push({ el: c, rec: r, bv: bv, bi: bi, bu: bu, other: other, comment: comment });
+    list.appendChild(c);
+    update(i);
+  });
+
+  function update(i) {
+    var k = cards[i], s = state[k.rec.record_id], st = status(k.rec.record_id);
+    k.el.classList.remove("valid", "invalid", "unsure", "renamed");
+    if (st !== "pending") k.el.classList.add(st);
+    k.bv.classList.toggle("on", s.decision === "valid" && !s.new_name);
+    k.bi.classList.toggle("on", s.decision === "invalid");
+    k.bu.classList.toggle("on", s.decision === "unsure");
+    if (s.new_name && document.activeElement !== k.other) {
+      var hit = data.species.filter(function (x) { return x.scientific === s.new_name; })[0];
+      k.other.value = hit && hit.common ? hit.scientific + " — " + hit.common : s.new_name;
+    }
+    if (document.activeElement !== k.comment) k.comment.value = s.comment || "";
+  }
+
+  function refresh() {
+    var f = document.getElementById("filter").value;
+    var q = document.getElementById("search").value.trim().toLowerCase();
+    var n = { pending: 0, valid: 0, invalid: 0, unsure: 0, renamed: 0 }, shown = 0;
+    cards.forEach(function (k) {
+      var st = status(k.rec.record_id);
+      n[st]++;
+      var match = !q || (k.rec.common_name + " " + k.rec.scientific_name).toLowerCase().indexOf(q) >= 0;
+      var show = match && (f === "all" || f === st);
+      k.el.hidden = !show;
+      if (show) shown++;
+    });
+    var done = records.length - n.pending;
+    document.getElementById("progress").style.width = (records.length ? 100 * done / records.length : 0) + "%";
+    document.getElementById("counts").textContent = done + " of " + records.length + " reviewed · " +
+      n.valid + " valid · " + n.invalid + " not valid · " + n.renamed + " relabelled · " + n.unsure + " unsure";
+    var empty = document.getElementById("empty");
+    if (!shown && !empty) { empty = el("p", "empty", "No records to show."); empty.id = "empty"; list.appendChild(empty); }
+    if (shown && empty) empty.remove();
+  }
+
+  var current = -1;
+  function setCurrent(i, scroll) {
+    if (current >= 0 && cards[current]) cards[current].el.classList.remove("current");
+    current = i;
+    cards[i].el.classList.add("current");
+    if (scroll) cards[i].el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function move(step) {
+    var i = current;
+    do { i += step; } while (i >= 0 && i < cards.length && cards[i].el.hidden);
+    if (i >= 0 && i < cards.length) setCurrent(i, true);
+  }
+  document.addEventListener("keydown", function (e) {
+    var t = e.target.tagName;
+    if (t === "INPUT" || t === "SELECT" || t === "TEXTAREA" || e.ctrlKey || e.metaKey || e.altKey) return;
+    var k = e.key.toLowerCase();
+    if (k === "j" || k === "arrowdown") { e.preventDefault(); move(1); }
+    else if (k === "k" || k === "arrowup") { e.preventDefault(); move(-1); }
+    else if (current >= 0 && (k === "v" || k === "n" || k === "u")) {
+      ({ v: cards[current].bv, n: cards[current].bi, u: cards[current].bu })[k].click();
+      if (k !== "u" || state[cards[current].rec.record_id].decision) move(1);
+    } else if (current >= 0 && k === " ") {
+      e.preventDefault();
+      var a = cards[current].el.querySelector("audio");
+      if (a) { if (a.paused) a.play(); else a.pause(); }
+    }
+  });
+  document.getElementById("filter").onchange = refresh;
+  document.getElementById("search").oninput = refresh;
+
+  // CSV export and import ----------------------------------------------------
+  var columns = ["record_id", "date", "scientific_name", "common_name", "detections", "confidence_max",
+                 "location_prob", "decision", "new_name", "comment", "reviewed_at"];
+  function q(v) {
+    if (v === null || v === undefined) return "";
+    return '"' + String(v).replace(/"/g, '""') + '"';
+  }
+  document.getElementById("download").onclick = function () {
+    var lines = [columns.map(q).join(",")];
+    records.forEach(function (r) {
+      var s = state[r.record_id];
+      var row = Object.assign({}, r, { decision: s.decision, new_name: s.new_name, comment: s.comment,
+                                       reviewed_at: s.reviewed_at });
+      lines.push(columns.map(function (c) { return q(row[c]); }).join(","));
+    });
+    var blob = new Blob([lines.join("\n") + "\n"], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "AudioMoth_" + data.device_id + "_validation.csv";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  };
+
+  function parseCsv(text) {
+    var rows = [], row = [], field = "", inq = false;
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      if (inq) {
+        if (ch === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inq = false; }
+        else field += ch;
+      } else if (ch === '"') inq = true;
+      else if (ch === "," || ch === ";") { row.push(field); field = ""; }
+      else if (ch === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
+      else if (ch !== "\r") field += ch;
+    }
+    if (field || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  }
+  document.getElementById("load").onclick = function () { document.getElementById("file").click(); };
+  document.getElementById("file").onchange = function (e) {
+    var f = e.target.files[0];
+    if (!f) return;
+    f.text().then(function (text) {
+      var rows = parseCsv(text.replace(/^﻿/, ""));
+      var h = rows.shift().map(function (x) { return x.trim(); });
+      var id = h.indexOf("record_id"), n = 0;
+      if (id < 0) { alert("This file has no record_id column."); return; }
+      rows.forEach(function (r) {
+        var s = state[r[id]];
+        if (!s) return;
+        ["decision", "new_name", "comment", "reviewed_at"].forEach(function (c) {
+          var j = h.indexOf(c);
+          if (j >= 0) s[c] = r[j] || "";
+        });
+        n++;
+      });
+      cards.forEach(function (k, i) { update(i); });
+      save(); refresh();
+      alert(n + " records loaded from " + f.name + ".");
+    });
+    e.target.value = "";
+  };
+
+  refresh();
+  if (cards.length) setCurrent(0, false);
+})();
+</script>
+</body>
+</html>

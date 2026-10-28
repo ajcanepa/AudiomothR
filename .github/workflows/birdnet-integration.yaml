@@ -1,0 +1,52 @@
+# Real BirdNET analysis of the example card on Windows, macOS and Linux:
+# checks that setup_birdnet() installs Python, TensorFlow and the model with
+# nothing else installed by hand, and that the results are the expected ones.
+# It downloads about 3 GB per system, so it only runs on demand (Actions tab,
+# "Run workflow") and once a week, not on every push.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * 1"
+
+name: birdnet-integration.yaml
+
+permissions: read-all
+
+jobs:
+  birdnet:
+    runs-on: ${{ matrix.os }}
+    name: BirdNET on ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: local::.
+          needs: check
+
+      - name: Install BirdNET and analyse the example card
+        shell: Rscript {0}
+        run: |
+          library(AudiomothR)
+          setup_birdnet(language = "en_us")
+          card <- system.file("extdata", "example", "card", package = "AudiomothR")
+          am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
+          am <- analyze_birdnet(am, language = "en_us", stop_on_error = TRUE)
+          d <- am$detections
+          print(d[, c("local_time", "scientific_name", "confidence", "no_doubts")])
+          stopifnot(nrow(d) == 6,
+                    length(unique(d$scientific_name)) == 4,
+                    abs(max(d$confidence[d$scientific_name == "Cettia cetti"]) - 0.82) < 0.01)

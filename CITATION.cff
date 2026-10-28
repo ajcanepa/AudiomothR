@@ -1,16 +1,17 @@
-# Metadatos de cita del software: los usan GitHub ("Cite this repository") y
-# Zenodo (autores de cada nueva versión archivada).
-# Para modificar la autoría basta con editar la lista `authors`; cada persona
-# admite además `orcid: "https://orcid.org/0000-0000-0000-0000"`,
-# `affiliation: "..."` y `email: "..."`. Mantener el mismo orden que en
-# Authors@R de DESCRIPTION.
+# Citation metadata of the software, used by GitHub ("Cite this repository")
+# and Zenodo (authors of each new archived version).
+# Keep the same authors, in the same order, as Authors@R in DESCRIPTION.
+# Each person also accepts `orcid: "https://orcid.org/0000-0000-0000-0000"`,
+# `affiliation: "..."` and `email: "..."`.
 cff-version: 1.2.0
-message: "Si usa este software, cítelo con estos metadatos."
-title: "AudiomothR: Procesamiento acústico de grabaciones AudioMoth con BirdNET"
+message: "If you use this software, please cite it using these metadata."
+title: "AudiomothR: Acoustic Processing of AudioMoth Recordings with BirdNET"
 type: software
-version: 0.2.0
-doi: 10.5281/zenodo.23646409
-date-released: 2026-10-25
+version: 0.3.0
+# DOI of all versions (concept DOI): it always resolves to the latest one.
+# Zenodo gives each release its own DOI.
+doi: 10.5281/zenodo.23646408
+date-released: 2026-10-28
 license: GPL-3.0-or-later
 repository-code: "https://github.com/ajcanepa/AudiomothR"
 authors:
@@ -18,19 +19,17 @@ authors:
     family-names: Canepa-Oneto
     email: ajcanepa@gmail.com
     affiliation: "Departamento de Ingeniería Informática, Universidad de Burgos"
-  # Coautores pendientes de confirmar (activar en la próxima versión, en este
-  # orden, quitando el "#"; añadirlos también a Authors@R de DESCRIPTION):
-  # - given-names: Patricia
-  #   family-names: de la Fuente Gamero
-  # - given-names: José Antonio
-  #   family-names: Barbero-Aparicio
-  # - given-names: Claudia
-  #   family-names: Fernández-Ruiz
-  #   affiliation: "Departamento de Ingeniería Informática, Universidad de Burgos"
-  # - given-names: Alicia
-  #   family-names: Olivares
-  # - given-names: Raúl
-  #   family-names: Marticorena-Sánchez
+  - given-names: Patricia
+    family-names: de la Fuente Gamero
+  - given-names: José Antonio
+    family-names: Barbero-Aparicio
+  - given-names: Claudia
+    family-names: Fernández-Ruiz
+    affiliation: "Departamento de Ingeniería Informática, Universidad de Burgos"
+  - given-names: Alicia
+    family-names: Olivares
+  - given-names: Raúl
+    family-names: Marticorena-Sánchez
 keywords:
   - AudioMoth
   - BirdNET

@@ -1,14 +1,17 @@
-# Cita del paquete: citation("AudiomothR"). Los autores se toman de
-# Authors@R (DESCRIPTION), de modo que solo hay que mantenerlos allí.
-autores <- eval(parse(text = meta$`Authors@R`))
-autores <- autores[vapply(autores, function(p) "aut" %in% p$role, logical(1))]
+# Citation of the package: citation("AudiomothR"). The authors are taken from
+# Authors@R (DESCRIPTION), so they only have to be kept there. The DOI is the
+# concept DOI of Zenodo, which always resolves to the latest version.
+authors <- eval(parse(text = meta$`Authors@R`))
+authors <- authors[vapply(authors, function(p) "aut" %in% p$role, logical(1))]
+year <- if (!is.null(meta$`Date/Publication`)) substr(meta$`Date/Publication`, 1, 4) else
+  if (!is.null(meta$Packaged)) substr(meta$Packaged, 1, 4) else format(Sys.Date(), "%Y")
 
 bibentry(
   bibtype = "Manual",
-  title = "{AudiomothR}: Procesamiento acústico de grabaciones {AudioMoth} con {BirdNET}",
-  author = autores,
-  year = "2026",
+  title = "{AudiomothR}: Acoustic Processing of {AudioMoth} Recordings with {BirdNET}",
+  author = authors,
+  year = year,
   note = paste("R package version", meta$Version),
-  doi = "10.5281/zenodo.23646409",
+  doi = "10.5281/zenodo.23646408",
   url = "https://github.com/ajcanepa/AudiomothR"
 )

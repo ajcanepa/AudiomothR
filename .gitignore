@@ -3,12 +3,15 @@
 .RData
 *.Rcheck/
 AudiomothR_*.tar.gz
-# Nunca subir grabaciones ni resultados reales, salvo los audios de ejemplo
-# del paquete (anonimizados, ubicación ficticia): inst/extdata/ejemplos/
+# Never upload real recordings or results, except the example audio of the
+# package (anonymised, fictitious location): inst/extdata/example/
 *.WAV
 *.wav
 *.mp4
-!inst/extdata/ejemplos/**
+!inst/extdata/example/**
 
-# Notas personales de seguimiento (no se suben)
+# Personal notes and review material (not uploaded)
+TODO.md
 PENDIENTE.md
+Mejoras/
+data-raw/sources/

@@ -1,8 +1,10 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^README\.Rmd$
-^ejemplos_uso$
 ^LICENSE\.md$
 ^\.github$
 ^CITATION\.cff$
+^TODO\.md$
 ^PENDIENTE\.md$
+^data-raw$
+^Mejoras$

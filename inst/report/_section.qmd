@@ -1,0 +1,109 @@
+# `r section_title`
+
+## Recordings
+
+```{r, fig.height = 3.2}
+plot_recordings_day(g)
+```
+
+```{r, results = "asis"}
+problems <- table(g$problem[!g$valid])
+pending <- sum(g$valid & !g$analysed)
+if (length(problems) || pending) {
+  paragraph(int(sum(problems) + pending), " of ", int(nrow(g)), " recordings were not analysed:")
+  kable_md(data.frame(Reason = c(names(problems), if (pending) "valid, but not analysed by BirdNET"),
+                      Recordings = c(as.integer(problems), if (pending) pending)))
+} else {
+  paragraph("All the recordings are valid and were analysed.")
+}
+if (any(g$triggered %in% TRUE)) {
+  paragraph(int(sum(g$triggered %in% TRUE)), " recordings were triggered by an amplitude or frequency threshold; their silences were restored before the analysis.")
+}
+vars <- battery_variables(g)
+if (length(vars)) {
+  paragraph(if (length(vars) == 2) "Battery voltage and temperature" else if (vars == "battery_v") "Battery voltage" else "Temperature",
+            " recorded by the AudioMoth at the start of each recording:")
+}
+```
+
+```{r, fig.height = 2.8, eval = length(battery_variables(g)) > 0}
+plot_battery(g)
+```
+
+## Detected species
+
+```{r, results = "asis"}
+if (!analysed) {
+  paragraph("**Not analysed with BirdNET.**")
+} else if (nrow(r)) {
+  paragraph(nrow(r), " species with at least one detection of confidence ≥ ", num(data$min_confidence),
+            ", sorted by number of detections. *No doubts*: share of detections in which BirdNET proposed no other species in the same 3 s window.")
+  table_species(r, several_recorders = length(unique(g$recorder)) > 1)
+} else {
+  paragraph("There are no detections with confidence ≥ ", num(data$min_confidence), ".")
+}
+```
+
+```{r, fig.height = height_confidence, eval = nrow(r) > 0}
+plot_confidence(d, r)
+```
+
+```{r, results = "asis", eval = nrow(r) > 25}
+paragraph("The plot shows the 25 most frequent species.")
+```
+
+```{r, results = "asis", eval = nrow(r) > 0 && length(unique(g$recorder)) > 1}
+cat("### Detections by recorder\n\n")
+matrix_recorders(d, r)
+```
+
+```{r, results = "asis", eval = nrow(r) > 0}
+cat("## Activity\n\n")
+paragraph("Detections and number of species per day:")
+```
+
+```{r, fig.height = 3.2, eval = nrow(r) > 0}
+plot_species_day(d, g)
+```
+
+```{r, results = "asis", eval = nrow(r) > 0}
+paragraph("Detections per local hour of the ", if (nrow(r) > 20) "20 " else "", "most frequent species (darker colours, more detections; logarithmic scale):")
+```
+
+```{r, fig.height = height_hours, eval = nrow(r) > 0}
+plot_hourly_activity(d, r)
+```
+
+## Examples
+
+```{r, results = "asis"}
+if (nrow(ex)) {
+  paragraph("Spectrograms of the examples extracted with `extract_examples()`. The dashed lines mark the 3 s window of the detection; the audio and video of each example are in the `examples/` folder of the results.")
+  for (i in seq_len(nrow(ex))) {
+    who <- if (length(unique(ex$recorder)) > 1 || several) paste0(esc(ex$recorder[i]), " · ") else ""
+    cat(sprintf("![%s%s (%s), confidence %s, %s %s](%s){width=85%%}\n\n", who, esc(ex$common_name[i]),
+                italic(ex$scientific_name[i]), num(ex$confidence[i]), date_txt(ex$local_date[i]),
+                ex$local_time[i], ex$png[i]))
+  }
+} else {
+  paragraph("No examples have been extracted. Use `detected_species()` to choose species and `extract_examples()` to create them.")
+}
+```
+
+## Records for Observation.org
+
+```{r, results = "asis"}
+if (nrow(obs)) {
+  certain <- sum(obs$`is certain` == "True")
+  paragraph(nrow(obs), " records (one per species and day) in the import file",
+            if (certain) paste0("; ", certain, " validated by ear (`is certain = True`)") else "",
+            if (certain < nrow(obs)) paste0(". The ", nrow(obs) - certain, " not validated are marked as uncertain (`is certain = False`) and should be checked before uploading them") else "",
+            ".")
+  t <- data.frame(Date = date_txt(obs$date), Time = obs$time, Species = italic(obs$`scientific name`),
+                  Certain = obs$`is certain`, Recorder = esc(obs$recorder), check.names = FALSE)
+  if (length(unique(obs$recorder)) == 1) t$Recorder <- NULL
+  kable_md(t)
+} else {
+  paragraph("No records have been exported to Observation.org with `export_observation()`.")
+}
+```

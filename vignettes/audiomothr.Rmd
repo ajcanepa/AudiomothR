@@ -1,8 +1,8 @@
 ---
-title: "Introducción a AudiomothR"
+title: "Introduction to AudiomothR"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Introducción a AudiomothR}
+  %\VignetteIndexEntry{Introduction to AudiomothR}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -12,206 +12,301 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ffmpeg_ok <- !inherits(try(AudiomothR:::ffmpeg_path(), silent = TRUE), "try-error")
 ```
 
-Este documento recorre el flujo completo de **AudiomothR** con una tarjeta de
-ejemplo incluida en el paquete: desde leer el `CONFIG.TXT` y el inventario de
-grabaciones hasta preparar un ejemplo de audio, espectrograma y vídeo, y
-exportar un CSV para Observation.org.
+This document goes through the whole workflow of **AudiomothR** with an
+example card included in the package: from reading `CONFIG.TXT` and taking
+the inventory of the recordings to creating an example (audio, spectrogram
+and video), **validating the records by ear** and exporting a CSV file for
+Observation.org.
 
-**BirdNET necesita Python y, la primera vez, descargar su modelo de
-Internet**, así que esta vignette no ejecuta `analizar_birdnet()`: muestra
-cómo se usa y, para los pasos siguientes (`resumen_especies()`,
-`extraer_ejemplos()`, `exportar_observation()`), carga las detecciones
-**reales** que se obtuvieron al analizar la tarjeta de ejemplo con
-`analizar_birdnet()` (BirdNET v2.4, opciones por defecto), incluidas en el
-paquete.
+```
+AudioMoth card ─► read_audiomoth() ─► prepare_audio() ─► analyze_birdnet()
+   ─► species_summary() / detected_species() ─► extract_examples()
+   ─► create_validation()  (optional: check the records by ear)
+   ─► export_observation() ─► create_report()  (optional: PDF report)
+```
 
-## Los datos de ejemplo
+**BirdNET needs Python and, the first time, downloading its model from the
+Internet**, so this vignette does not run `analyze_birdnet()`: it shows how to
+use it and, for the following steps, loads the **real** detections obtained
+when the example card was analysed with `analyze_birdnet()` (BirdNET v2.4,
+default options), which are included in the package.
 
-El paquete incluye, en `inst/extdata/ejemplos/tarjeta/`, una tarjeta
-AudioMoth ficticia: un `CONFIG.TXT` y dos subcarpetas diarias
-(`20261007/` y `20261015/`) con 8 grabaciones cada una (16 en total).
+## The example data
 
-Es un **subconjunto reducido y anonimizado** de grabaciones reales de un
-proyecto de seguimiento acústico:
+The package includes, in `inst/extdata/example/card/`, an AudioMoth card: a
+`CONFIG.TXT` file and two daily folders (`20261007/` and `20261015/`) with 8
+recordings each (16 in total). It is a **small, anonymised subset** of real
+recordings of an acoustic monitoring project:
 
-- **Identificador de dispositivo ficticio** (`FACADE0012345678`): no es el
-  identificador real de ninguna grabadora.
-- **Ubicación ficticia** (`41.00°N 3.00°W`, con la misma precisión de dos
-  decimales que escribe AudioMoth): no corresponde al punto real donde se
-  grabó.
-- **Tamaño reducido**: para que el paquete sea ligero, la mayoría de los WAV
-  se recortaron a medio segundo (sin audio útil: solo sirven para ver el
-  patrón de nombres y metadatos de una tarjeta real). **6 de los 16**
-  archivos ("ejemplos estrella") conservan ~7 s con un canto real,
-  suficientes para que BirdNET pueda detectar algo si se analizan.
-- Como los WAV recortados a medio segundo duran menos de 3 s, 10 de las 16
-  grabaciones aparecerán marcadas como `problema: "duración < 3 s"` en el
-  inventario de más abajo. **Es intencionado**: así se ve también cómo
-  [leer_audiomoth()] señala grabaciones defectuosas en una tarjeta real.
+- **Fictitious device ID** (`FACADE0012345678`): it is not the ID of any
+  real recorder.
+- **Fictitious location** (`41.00°N 3.00°W`, with the same precision of two
+  decimals that AudioMoth writes): it is not the place where the recordings
+  were made.
+- **Reduced size**: most WAV files were cut to 0.05 s (no useful audio: they
+  only show the names and metadata of a real card). **6 of the 16** files
+  keep about 7 s with real song, enough for BirdNET to detect something.
+- Since the cut files last less than 3 s, 10 of the 16 recordings appear as
+  `problem: "duration < 3 s"` in the inventory below. **This is on
+  purpose**: it also shows how `read_audiomoth()` flags faulty recordings of
+  a real card.
 
 ```{r}
 library(AudiomothR)
 
-carpeta_ejemplo <- system.file("extdata", "ejemplos", "tarjeta", package = "AudiomothR")
-carpeta_ejemplo
+example_card <- system.file("extdata", "example", "card", package = "AudiomothR")
+example_card
 ```
 
-## 1. Leer la tarjeta: `CONFIG.TXT`, ubicación e inventario
+## 1. Reading the card: `CONFIG.TXT`, location and inventory
+
+`read_audiomoth()` takes the root folder of the card (the one that contains
+`CONFIG.TXT` and the daily folders); without a folder, `choose_folder()` opens
+a dialog. AudioMoth only writes the location in `CONFIG.TXT` when it was set
+in its configuration app, and with two decimals (about 700 m), so giving the
+coordinates of the site is recommended. `coordinates` accepts the text copied
+from Google Earth or Google Maps (decimal degrees, degrees-minutes-seconds,
+hemisphere letters before or after the numbers, a KML placemark or a Google
+Maps link); see `?parse_coordinates`.
+
+The results are saved in the `output` folder. When it is not given,
+`read_audiomoth()` asks for it in the console, suggesting a folder in
+`~/AudiomothR_results/` (or the one chosen last time for the same card); in
+scripts run with `Rscript` it must be given. Here a temporary folder is used,
+which disappears when R is closed: **in real use, choose a folder of your
+own, outside the card and one per card**. Reading the card again is fast:
+the metadata of the WAV files are kept in a cache in that folder.
 
 ```{r}
-salida <- tempfile("audiomothr_vignette_")
+output <- file.path(tempdir(), "audiomothr_vignette")
 
-am <- leer_audiomoth(
-  carpeta_ejemplo,
-  coordenadas = "41.00, -3.00",      # coordenadas ficticias del ejemplo
-  punto = "Punto ficticio de ejemplo",
-  salida = salida
+am <- read_audiomoth(
+  example_card,
+  coordinates = "41.00, -3.00",      # fictitious coordinates of the example
+  site = "Fictitious example site",
+  output = output
 )
 ```
 
 ```{r}
-am$grabaciones[, c("archivo", "duracion_s", "valida", "problema")]
+am$recordings[, c("file", "start_local", "duration_s", "battery_v", "valid", "problem")]
 ```
 
-## 2. Preparar los audios para BirdNET
+The inventory has, for each recording, the day, the start time in UTC and in
+local time (by default `Europe/Madrid`, with daylight saving time), the
+duration, the sample rate, the battery voltage, the temperature and the
+problems found (unreadable files, interrupted recordings, recordings shorter
+than 3 s, without date or duplicated). Recordings triggered by an amplitude
+or frequency threshold (`*T.WAV`) are recognised and their silences are
+restored before the analysis.
 
-`preparar_audios()` convierte a 48 kHz mono lo que haga falta (aquí no hace
-falta nada: la AudioMoth ya graba a 48 kHz) y descarta las grabaciones con
-`problema`.
+## 2. Preparing the audio for BirdNET
+
+`prepare_audio()` converts to 48 kHz mono whatever needs it (nothing here:
+the AudioMoth already recorded at 48 kHz) and leaves out the recordings with
+a `problem`. This step is optional: `analyze_birdnet()` does it by itself.
+
+```{r}
+am <- prepare_audio(am)
+sum(!is.na(am$recordings$birdnet_path))
+```
+
+## 3. Analysing with BirdNET
+
+```{r, eval = FALSE}
+setup_birdnet()             # optional: installs Python, TensorFlow and the model beforehand
+am <- analyze_birdnet(am)   # the first time it installs them if setup_birdnet() was not run
+```
+
+This adds `am$detections` and saves `AudioMoth_<ID>_detections.csv` in the
+results folder. Each recording is analysed once: if the analysis is
+interrupted, running it again continues where it stopped. By default only the
+species expected at the site and week of each recording are considered
+(location filter of BirdNET), and the common names are in the language of the
+operating system (argument `language`, e.g. `language = "es"`).
+
+Instead of running it here, we load the detections that `analyze_birdnet()`
+returned for this same card, saved in the package:
+
+```{r}
+am$detections <- read_detections(
+  system.file("extdata", "example", "birdnet_detections.csv", package = "AudiomothR")
+)
+am$detections[, c("local_time", "start_s", "scientific_name", "confidence", "no_doubts")]
+```
+
+BirdNET analyses the 6 valid recordings and returns 6 detections of 4
+species, all of them in the recordings of 7 October. In the recording of
+08:40, in both 3 s windows BirdNET hesitates between the grey wagtail
+(*Motacilla cinerea*) and the white wagtail (*Motacilla alba*):
+`no_doubts = FALSE`.
+
+## 4. From detections to a summary by species
+
+```{r}
+species_summary(am, min_confidence = 0.5)
+```
+
+To choose the species of the examples without typing their names,
+`detected_species()` prints a vector ready to copy, change the number of
+examples of each species and paste into `extract_examples()`. It also returns
+that vector, so it can be passed on directly:
+
+```{r}
+species <- detected_species(am, example_confidence = 0.5)
+```
+
+## 5. Audio, spectrogram and video examples
+
+`extract_examples()` chooses the best detections of the species (by default
+with a confidence of at least 0.85, without doubts and at most one per
+recording; here the threshold is lowered to 0.5) and creates, for each one, a
+clip of the audio with a margin before and after the detection, its
+spectrogram and an MP4 video of the spectrogram with its audio.
 
 ```{r, eval = ffmpeg_ok}
-am <- preparar_audios(am)
-sum(!is.na(am$grabaciones$ruta_birdnet))
+extract_examples(am, species, min_confidence = 0.5, margin_s = 0.5)
+list.files(file.path(output, "examples"), recursive = TRUE)
 ```
 
 ```{r, eval = !ffmpeg_ok, echo = FALSE, results = "asis"}
-cat("_(Este bloque no se ha ejecutado al generar el manual: no se ha encontrado `ffmpeg` en este ordenador.)_\n")
+cat("_(This block was not run when building the vignette: ffmpeg was not found on this computer.)_\n")
 ```
 
-## 3. Analizar con BirdNET
+## 6. Validating the records by ear (optional)
 
-```{r, eval = FALSE}
-am <- analizar_birdnet(am)   # la 1.ª vez instala Python y descarga el modelo
-```
-
-Esto añade `am$detecciones` y guarda
-`AudioMoth_<ID>_detecciones.csv` en la carpeta de resultados. **No se
-ejecuta aquí** porque necesita Internet y puede tardar varios minutos la
-primera vez.
-
-En su lugar, cargamos las detecciones que devolvió `analizar_birdnet()` con
-esta misma tarjeta (BirdNET v2.4, opciones por defecto), guardadas en el
-paquete. Solo hay que completar la columna `ruta`, que depende de dónde esté
-instalado el paquete en cada ordenador:
+BirdNET makes mistakes, above all with species that are unusual at the site
+or detected with low confidence, and Observation.org receives whatever is
+exported. Before exporting, the records can be checked by ear with
+`create_validation()`. It is optional and takes time (a few seconds per
+record), but it is the best guarantee against wrong records.
 
 ```{r}
-detecciones <- read.csv(
-  system.file("extdata", "ejemplos", "detecciones_birdnet.csv", package = "AudiomothR"),
-  encoding = "UTF-8", stringsAsFactors = FALSE
+page <- create_validation(am, min_confidence = 0.5, open = FALSE)
+```
+
+The function writes a folder `validation/` in the results with:
+
+- `AudioMoth_<ID>_validation.html`: a web page that works offline, in any
+  browser and **without R** (the folder can be sent to an ornithologist);
+- `clips/`: the audio clips (and their spectrograms) of the best detections
+  of each record;
+- `AudioMoth_<ID>_validation.csv`: the list of records, with empty columns
+  `decision` and `new_name`.
+
+The page has **one card per species and day** (the unit of a record of
+Observation.org), sorted **from the least plausible to the most plausible**:
+first the species with the lowest product of their highest confidence and
+their probability of occurrence at the site and week (from the BirdNET
+metadata model). For each card it shows the number of detections, the
+highest confidence, how expected the species is at the site, the other
+species that BirdNET proposed in the same windows, and up to `n_clips` clips
+from different recordings. Listen and decide:
+
+| Decision | Keyboard | Effect on `export_observation()` |
+|---|---|---|
+| **Valid** | `V` | The record is exported, even with a single detection or a confidence below `min_confidence`, with `is certain = True`. |
+| **Not valid** | `N` | The record is not exported. |
+| **Unsure** | `U` | The usual criteria apply (`min_confidence`, `min_detections`). |
+| **Other species** | (type) | The record is exported under the chosen species (with autocompletion among all the BirdNET species). |
+
+`J`/`K` move between cards and `Space` plays the first clip. Decisions are
+kept in the browser while working (you can close the page and come back).
+When you finish, press **Download decisions (CSV)**: the browser saves
+`AudioMoth_<ID>_validation.csv` in the Downloads folder. Instead of the page,
+the CSV of the validation folder can also be filled in with a spreadsheet
+(columns `decision`: `valid`, `invalid` or `unsure`, and `new_name`).
+
+`read_validation()` finds the decisions (in the validation folder or in the
+Downloads folder, the most recent file) and `export_observation()` applies
+them automatically. To show it here, we write the file that the page would
+download, with two decisions:
+
+```{r}
+decisions <- read.csv(file.path(output, "validation", "AudioMoth_FACADE0012345678_validation.csv"))
+decisions$decision[decisions$scientific_name == "Troglodytes troglodytes"] <- "valid"
+decisions$decision[decisions$scientific_name == "Motacilla cinerea"] <- "invalid"
+write.csv(decisions, file.path(output, "validation", "AudioMoth_FACADE0012345678_validation.csv"),
+          row.names = FALSE, na = "")
+read_validation(am)[, c("date", "scientific_name", "decision", "new_name")]
+```
+
+Running `create_validation()` again (e.g. after analysing more recordings)
+keeps the decisions already taken.
+
+## 7. Exporting to Observation.org
+
+`export_observation()` turns the detections into the import format of
+Observation.org: one record per species and day, by default only with
+detections of confidence ≥ 0.80 and at least two detections that day, plus
+the records validated by ear. BirdNET names (eBird/Clements taxonomy) are
+translated into the IOC World Bird List v15.2 used by Observation.org; labels
+that are not birds (human voice, noise, frogs, insects...) are left out, and
+species split by IOC are translated according to the location or reported.
+
+```{r}
+obs <- export_observation(am)
+obs[, c("date", "time", "scientific name", "is certain", "notes")]
+```
+
+With the default criteria, this card alone would not produce any record: no
+species has two detections of at least 0.80 on the same day. The Eurasian
+wren appears because it was validated as correct (and the grey wagtail does
+not, because it was marked as not valid). Without validation, the criteria
+can be relaxed:
+
+```{r}
+obs <- export_observation(am, min_confidence = 0.5, min_detections = 1, validation = FALSE)
+obs[, c("date", "time", "scientific name", "is certain")]
+```
+
+The records that have not been validated are always marked `is certain =
+False`: the identification is automatic and BirdNET sometimes fails. If the
+CSV is edited by hand, a new export does not overwrite it (it is saved with
+the date in its name), and the criteria used are saved next to it in
+`AudioMoth_<ID>_observation.json`.
+
+## 8. PDF report
+
+`create_report()` prepares a Quarto folder with everything it needs and
+renders a PDF with the summary of the sampling, the map of the recorders, the
+state of the recordings (by day, problems, battery and temperature), the
+detected species with their confidence and activity by day and by hour, the
+spectrograms of the examples, the records for Observation.org and the result
+of the validation. It needs Quarto (≥ 1.4; RStudio and Positron already
+include it), but not LaTeX.
+
+```{r, eval = FALSE}
+create_report(am)                                     # one recorder
+
+# Several recorders: one section each (by_recorder = TRUE) or all together
+create_report(list(am1, am2, am3), by_recorder = FALSE, output = "report_river")
+```
+
+The map is drawn on OpenStreetMap when `maptiles`, `sf` and `terra` are
+installed and there is an Internet connection; otherwise only the points are
+shown. The report folder can be edited (`report.qmd`) and rendered again with
+`quarto render report.qmd`; `create_report()` keeps those edits.
+
+## Everything in one call: `process_audiomoth()`
+
+```{r, eval = FALSE}
+am <- process_audiomoth(
+  folder = example_card,
+  coordinates = "41.00, -3.00",
+  output = "~/AudioMoth_results/example",
+  example_species = "auto",          # the species proposed by detected_species()
+  example_confidence = 0.5,
+  validation = TRUE,                 # creates the validation page
+  report = TRUE                      # creates the PDF report
 )
-detecciones$ruta <- am$grabaciones$ruta[match(detecciones$archivo, am$grabaciones$archivo)]
-am$detecciones <- detecciones
-
-am$detecciones[, c("archivo", "inicio_s", "fin_s", "nombre_cientifico", "confianza", "sin_dudas")]
 ```
 
-BirdNET analiza las 6 grabaciones válidas y devuelve 6 detecciones de 4
-especies, todas en las grabaciones del 7 de octubre. En la grabación de las
-08:40, BirdNET duda en las dos ventanas de 3 s entre la lavandera cascadeña
-y la lavandera blanca (`sin_dudas = FALSE`).
+It chains steps 1 to 8 (it needs the real BirdNET, so it is not run here).
+`example_species` also accepts the vector printed by `detected_species()`.
+Observation.org is exported with the default criteria only the first time
+(`export = TRUE` exports again); after validating the records, call
+`export_observation(am)` to apply the decisions.
 
-## 4. De las detecciones a un resumen por especie
-
-```{r}
-resumen_especies(am, confianza_minima = 0.5)
-```
-
-Ninguna detección supera 0,85, por lo que `candidatas_ejemplo` es 0 en
-todas las especies: para extraer ejemplos de esta tarjeta hay que bajar la
-confianza mínima, como se hace a continuación.
-
-Para elegir las especies de los ejemplos sin escribir los nombres a mano,
-`especies_detectadas()` imprime un vector listo para copiar, cambiar el
-número de ejemplos de cada especie y pegarlo en `extraer_ejemplos()` (o en
-el argumento `especies_ejemplo` de `procesar_audiomoth()`):
-
-```{r}
-especies_detectadas(am, confianza_ejemplos = 0.5)
-```
-
-## 5. Ejemplo de audio, espectrograma y vídeo
-
-La mejor detección sin dudas es la del cetia ruiseñor (*Cettia cetti*,
-confianza 0,82):
-
-```{r, eval = ffmpeg_ok}
-extraer_ejemplos(am, "Cettia cetti", n = 1, confianza_minima = 0.5, margen_s = 0.5)
-list.files(file.path(salida, "ejemplos"), recursive = TRUE)
-```
-
-```{r, eval = !ffmpeg_ok, echo = FALSE, results = "asis"}
-cat("_(Este bloque no se ha ejecutado al generar el manual: no se ha encontrado `ffmpeg` en este ordenador.)_\n")
-```
-
-## 6. Exportar a Observation.org
-
-Con los criterios por defecto (confianza ≥ 0,80 y al menos 2 detecciones de
-la especie ese día) esta tarjeta no produce ningún registro, porque cada
-especie se detecta una sola vez. Para el ejemplo relajamos ambos criterios:
-
-```{r}
-obs <- exportar_observation(am, confianza_minima = 0.5, min_detecciones = 1)
-obs[, c("date", "time", "scientific name", "lat", "lng", "is certain", "notes")]
-```
-
-### Antes de importar el CSV en Observation.org
-
-> **`is certain` se deja siempre en `"False"`: la identificación es
-> automática y BirdNET se equivoca a veces.** Revise el CSV a mano
-> (`AudioMoth_<ID>_observation.csv`) antes de subirlo a Observation.org:
-> compruebe al menos las especies menos esperables o con menor confianza, y
-> escuche el audio correspondiente si tiene dudas (con
-> [extraer_ejemplos()] o reproduciendo el WAV original). Este paquete
-> facilita la identificación automática, pero **no sustituye la revisión de
-> una persona** antes de publicar un registro.
-
-## 7. Informe en PDF
-
-`crear_informe()` prepara una carpeta Quarto con todo lo necesario y la
-convierte en un PDF con el resumen del muestreo, el mapa de las cajas, el
-estado de las grabaciones (por día, problemas, batería y temperatura), las
-especies detectadas con su confianza y su actividad por día y por hora, los
-espectrogramas de los ejemplos y los registros para Observation.org.
-Necesita Quarto (≥ 1.4; RStudio y Positron ya lo incluyen), pero no LaTeX.
-
-```{r, eval = FALSE}
-crear_informe(am)                                   # una caja
-
-# Varias cajas: un apartado por caja (por_caja = TRUE) o todas juntas (FALSE)
-crear_informe(list(am1, am2, am3), por_caja = FALSE, salida = "informe_rio")
-```
-
-El mapa se dibuja sobre OpenStreetMap si están instalados `maptiles`, `sf` y
-`terra` y hay conexión a Internet; si no, se muestran solo los puntos. La
-carpeta del informe se puede editar (`informe.qmd`) y volver a convertir en
-PDF con `quarto render informe.qmd`.
-
-## Todo en una orden: `procesar_audiomoth()`
-
-```{r, eval = FALSE}
-am <- procesar_audiomoth(
-  carpeta = carpeta_ejemplo,
-  coordenadas = "41.00, -3.00",
-  especies_ejemplo = c("Cettia cetti" = 1, "Troglodytes troglodytes" = 1),
-  confianza_ejemplos = 0.5,
-  informe = TRUE
-)
-```
-
-Encadena los pasos 1 a 7 (necesita BirdNET real, por lo que tampoco se
-ejecuta aquí). `procesar_audiomoth()` exporta a Observation.org con los
-criterios por defecto, que con esta tarjeta no producen ningún registro;
-para usar otros criterios basta con llamar después a
-`exportar_observation(am, confianza_minima = 0.5, min_detecciones = 1)`.
-Véase `?procesar_audiomoth` y el `README.md` del paquete para más detalles
-de cada función.
+See `?process_audiomoth` and the `README.md` of the package for more details
+on each function.
