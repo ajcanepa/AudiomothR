@@ -24,7 +24,13 @@ The package includes data and code from third parties:
    counting method and activity of the Observation.org import example
    (observations-import-example.xlsx, https://observation.org), in Spanish.
 
-4. Biosonora
+4. Names of the bird species of Observation.org
+   File: inst/extdata/taxonomy/observation_birds.csv.gz and the column
+   obs_name of birdnet_v2.4_to_ioc_15.2.csv.gz. Scientific names taken from
+   the species list of Observation.org (https://observation.org), downloaded
+   on 2026-10-28, used to export records that its import accepts.
+
+5. Biosonora
    The reading of CONFIG.TXT and of the metadata of WAV files (R/config.R,
    R/wav.R) was adapted from code of the Biosonora project, by Antonio
    Canepa-Oneto (author and maintainer of AudiomothR).

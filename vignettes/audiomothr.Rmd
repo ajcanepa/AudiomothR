@@ -240,9 +240,11 @@ keeps the decisions already taken.
 Observation.org: one record per species and day, by default only with
 detections of confidence ≥ 0.80 and at least two detections that day, plus
 the records validated by ear. BirdNET names (eBird/Clements taxonomy) are
-translated into the IOC World Bird List v15.2 used by Observation.org; labels
-that are not birds (human voice, noise, frogs, insects...) are left out, and
-species split by IOC are translated according to the location or reported.
+translated, through the IOC World Bird List v15.2, into the names of the bird
+species of Observation.org (which has some lumps and genera of its own);
+labels that are not birds (human voice, noise, frogs, insects...) are left
+out, and species split by IOC are translated according to the location or
+reported.
 
 ```{r}
 obs <- export_observation(am)

@@ -2,7 +2,8 @@
 #
 #   - Exact columns, order and encoding of observations-import-example.xlsx
 #     (Observation.org) and translation of BirdNET names (eBird/Clements) into
-#     IOC names (Biosonora; tables rebuilt in data-raw/build_taxonomy.R).
+#     the names of Observation.org, through the IOC list (tables rebuilt in
+#     data-raw/build_taxonomy.R from the species list of Observation.org).
 #   - One record per species and day (local time), only with detections of
 #     confidence >= 0.8 and at least 2 detections that day, unless the record
 #     was validated by ear (create_validation()).
@@ -19,12 +20,14 @@ observation_columns <- c(
 #' Exports the detections in the format of Observation.org
 #'
 #' Groups the detections into one record per species and day. BirdNET names
-#' are translated into the IOC World Bird List v15.2 (the one used by
-#' Observation.org); classes that are not birds (noise, human voice, frogs,
-#' insects...) are left out, and so are, with a warning, the birds without an
-#' IOC name. Species that IOC has split are translated according to the
-#' location when the rule is clear (e.g. *Cecropis daurica* is *Cecropis
-#' rufula* in Europe) and are reported otherwise.
+#' are translated into the names of the bird species of Observation.org,
+#' which follows the IOC World Bird List with its own lumps and genera (e.g.
+#' *Corvus cornix* is exported as *Corvus corone*, with the BirdNET name in
+#' the notes): every bird of BirdNET v2.4 has a valid name of Observation.org.
+#' Classes that are not birds (noise, human voice, frogs, insects...) are left
+#' out. Species that IOC has split are translated according to the location
+#' when the rule is clear (e.g. *Cecropis daurica* is *Cecropis rufula* in
+#' Europe) and are reported otherwise.
 #'
 #' **Validation.** When the records have been checked by ear with
 #' [create_validation()], the decisions are applied: records marked as not
@@ -46,7 +49,7 @@ observation_columns <- c(
 #' @param no_doubts_only Count only the detections without another species in
 #'   the same window.
 #' @param species Only these species (scientific or common name of BirdNET,
-#'   or IOC name).
+#'   or name of Observation.org).
 #' @param from,to Local dates (`"2026-10-07"` or `"07/10/2026"`) that limit
 #'   the period.
 #' @param validation Use the validation of [create_validation()]: `NULL`
@@ -63,7 +66,8 @@ observation_columns <- c(
 #'   is Spanish), followed by the best detection of the record.
 #' @param language Language of the default notes.
 #' @param equivalences Named vector of own equivalences
-#'   `c("BirdNET name" = "IOC name")`, which take priority.
+#'   `c("BirdNET name" = "Observation.org name")`, which take priority. The
+#'   names must be bird species of Observation.org (or their synonyms).
 #' @param file Output CSV. By default `<output>/AudioMoth_<ID>_observation.csv`.
 #' @param overwrite Overwrite the CSV even if it has been edited by hand.
 #' @return Invisibly, the exported data frame (columns of Observation.org).
@@ -133,11 +137,11 @@ export_observation <- function(am, min_confidence = 0.8, min_detections = 2, no_
 
   tax <- ioc_names(unique(d$scientific_name), u$lat, u$lon, equivalences)
   report_taxonomy(tax)
-  d$ioc <- tax$ioc[match(d$scientific_name, tax$birdnet)]
-  d <- d[!is.na(d$ioc), , drop = FALSE]
+  d$obs <- tax$obs[match(d$scientific_name, tax$birdnet)]
+  d <- d[!is.na(d$obs), , drop = FALSE]
 
   d$instant <- as.POSIXct(d$recording_start_utc, tz = "UTC") + d$start_s
-  groups <- split(d, list(d$ioc, d$local_date), drop = TRUE)
+  groups <- split(d, list(d$obs, d$local_date), drop = TRUE)
   groups <- groups[vapply(groups, function(x) {
     any(x$validated) || length(unique(paste(x$file, x$event))) >= min_detections
   }, logical(1))]
@@ -151,11 +155,13 @@ export_observation <- function(am, min_confidence = 0.8, min_detections = 2, no_
       if (spanish) "ID mediante " else "Identified with ", model,
       if (validated) (if (spanish) ", validado escuchando la grabaci\u00f3n" else ", checked by listening to the recording") else "",
       sprintf(if (spanish) " (mejor detecci\u00f3n: %s, %g s, confianza %.2f)" else " (best detection: %s, %g s, confidence %.2f)",
-              best$file, best$start_s, best$confidence))
+              best$file, best$start_s, best$confidence),
+      # When Observation.org groups several BirdNET species, keep the original names
+      if (any(unique(x$scientific_name) != x$obs[1])) paste0("; BirdNET: ", paste(unique(x$scientific_name), collapse = ", ")) else "")
     data.frame(
       date = x$local_date[1],
       time = format(x$instant[1], "%H:%M", tz = am$time_zone),
-      scientific_name = x$ioc[1],
+      scientific_name = x$obs[1],
       lat = round(u$lat, 6),
       lng = round(u$lon, 6),
       accuracy = min(1000L, max(1L, as.integer(u$precision_m))),
@@ -170,7 +176,7 @@ export_observation <- function(am, min_confidence = 0.8, min_detections = 2, no_
       counting_method = counting_method,
       related_species = NA_character_,
       external_reference = sprintf("AudioMoth_%s_%s_%s", am$config$device_id,
-                                   gsub("-", "", x$local_date[1]), safe_name(x$ioc[1])),
+                                   gsub("-", "", x$local_date[1]), safe_name(x$obs[1])),
       obscurity = NA_character_,
       embargo_date = NA_character_,
       stringsAsFactors = FALSE
@@ -221,13 +227,13 @@ report_taxonomy <- function(tax) {
   if (length(not_bird)) inform("i" = "Left out because they are not birds: {.val {not_bird}}.")
   none <- tax$birdnet[tax$match == "none"]
   if (length(none)) {
-    cli::cli_warn(c("{length(none)} bird{?s} without a name in the IOC World Bird List 15.2 {?is/are} left out: {.val {none}}.",
-                    "i" = "Give its IOC name with {.arg equivalences}, e.g. {.code equivalences = c(\"{none[1]}\" = \"IOC name\")}."))
+    cli::cli_warn(c("{length(none)} name{?s} without a bird species in Observation.org {?is/are} left out: {.val {none}}.",
+                    "i" = "Give its name in Observation.org with {.arg equivalences}, e.g. {.code equivalences = c(\"{none[1]}\" = \"Observation.org name\")}."))
   }
   noted <- tax[!is.na(tax$note), , drop = FALSE]
   if (nrow(noted)) {
-    cli::cli_warn(c("Check these species, whose concept differs between BirdNET and IOC:",
-                    stats::setNames(sprintf("%s \u2192 %s: %s", noted$birdnet, noted$ioc, noted$note),
+    cli::cli_warn(c("Check these species, whose concept differs between BirdNET, IOC and Observation.org:",
+                    stats::setNames(sprintf("%s \u2192 %s: %s", noted$birdnet, noted$obs, noted$note),
                                     rep("*", nrow(noted)))))
   }
 }

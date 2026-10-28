@@ -50,11 +50,19 @@ test_that("translates BirdNET names into IOC 15.2, with regional splits", {
   expect_equal(spain$ioc, c("Cecropis rufula", "Calonectris diomedea", "Fringilla coelebs"))
   canary <- AudiomothR:::ioc_names(c("Calonectris diomedea", "Fringilla coelebs"), 28.1, -15.4)
   expect_equal(canary$ioc, c("Calonectris borealis", "Fringilla canariensis"))
-  # Every bird label of BirdNET v2.4 has an IOC name
+  # Every bird label of BirdNET v2.4 has an IOC name and a species of Observation.org
   t <- AudiomothR:::taxonomy_table()
   expect_false(any(t$match == "none"))
   expect_true(all(t$ioc_name[t$match != "not_bird"] %in% AudiomothR:::ioc_table()$ioc_name))
-  expect_error(AudiomothR:::check_equivalences(c("Corvus monedula" = "Coloeus monedulla")), "not in the IOC")
+  obs <- AudiomothR:::observation_table()
+  expect_true(all(t$obs_name[t$match != "not_bird"] %in% obs$species))
+  expect_true(all(AudiomothR:::regional_rules()$ioc_name %in% obs$species))
+  # Lumps and genera of Observation.org
+  lumps <- AudiomothR:::ioc_names(c("Corvus cornix", "Saxicola stejnegeri", "Tumbezia salvini"), 41, -3)
+  expect_equal(lumps$obs, c("Corvus corone", "Saxicola maurus", "Ochthoeca salvini"))
+  expect_error(AudiomothR:::check_equivalences(c("Corvus monedula" = "Coloeus monedulla")), "not bird species of Observation.org")
+  expect_equal(AudiomothR:::ioc_names("Corvus monedula", equivalences = c("Corvus monedula" = "Corvus cornix"))$obs,
+               "Corvus corone") # a synonym of Observation.org becomes its species
 })
 
 test_that("uses the current location and does not overwrite an edited export", {
@@ -67,4 +75,15 @@ test_that("uses the current location and does not overwrite an edited export", {
   expect_warning(suppressMessages(export_observation(am)), "edited")
   expect_true(any(grepl("edited by hand", readLines(file))))
   expect_length(list.files(am$output, pattern = "_observation_[0-9]{8}_[0-9]{6}\\.csv$"), 1)
+})
+
+test_that("exports a species lumped by Observation.org under its name, keeping BirdNET's", {
+  am <- analysed_card()
+  am$detections$scientific_name[am$detections$scientific_name == "Turdus merula"] <- "Corvus cornix"
+  obs <- suppressWarnings(suppressMessages(export_observation(am, min_confidence = 0.5, min_detections = 1,
+                                                              file = tempfile(fileext = ".csv"))))
+  k <- obs$`scientific name` == "Corvus corone"
+  expect_true(any(k))
+  expect_match(obs$notes[k], "BirdNET: Corvus cornix")
+  expect_true(all(obs$`scientific name` %in% AudiomothR:::observation_table()$species))
 })

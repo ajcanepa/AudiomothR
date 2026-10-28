@@ -38,7 +38,7 @@ species in the day.}
 the same window.}
 
 \item{species}{Only these species (scientific or common name of BirdNET,
-or IOC name).}
+or name of Observation.org).}
 
 \item{from, to}{Local dates (\code{"2026-10-07"} or \code{"07/10/2026"}) that limit
 the period.}
@@ -62,7 +62,8 @@ is Spanish), followed by the best detection of the record.}
 \item{language}{Language of the default notes.}
 
 \item{equivalences}{Named vector of own equivalences
-\code{c("BirdNET name" = "IOC name")}, which take priority.}
+\code{c("BirdNET name" = "Observation.org name")}, which take priority. The
+names must be bird species of Observation.org (or their synonyms).}
 
 \item{file}{Output CSV. By default \verb{<output>/AudioMoth_<ID>_observation.csv}.}
 
@@ -73,12 +74,14 @@ Invisibly, the exported data frame (columns of Observation.org).
 }
 \description{
 Groups the detections into one record per species and day. BirdNET names
-are translated into the IOC World Bird List v15.2 (the one used by
-Observation.org); classes that are not birds (noise, human voice, frogs,
-insects...) are left out, and so are, with a warning, the birds without an
-IOC name. Species that IOC has split are translated according to the
-location when the rule is clear (e.g. \emph{Cecropis daurica} is \emph{Cecropis
-rufula} in Europe) and are reported otherwise.
+are translated into the names of the bird species of Observation.org,
+which follows the IOC World Bird List with its own lumps and genera (e.g.
+\emph{Corvus cornix} is exported as \emph{Corvus corone}, with the BirdNET name in
+the notes): every bird of BirdNET v2.4 has a valid name of Observation.org.
+Classes that are not birds (noise, human voice, frogs, insects...) are left
+out. Species that IOC has split are translated according to the location
+when the rule is clear (e.g. \emph{Cecropis daurica} is \emph{Cecropis rufula} in
+Europe) and are reported otherwise.
 }
 \details{
 \strong{Validation.} When the records have been checked by ear with

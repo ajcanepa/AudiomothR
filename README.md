@@ -17,8 +17,8 @@ to the records of a citizen-science platform:
    the audio.
 4. **Validate the records by ear** (optional) on a web page that works in any
    browser, from the least to the most plausible.
-5. **Export to Observation.org**, translating BirdNET names into the IOC
-   World Bird List.
+5. **Export to Observation.org**, translating BirdNET names into the names
+   of Observation.org.
 6. Create a **PDF report** of one or several recorders.
 
 ---
@@ -259,13 +259,13 @@ decimal coordinates with a point), with these values:
 | Column | Value |
 |---|---|
 | `date` / `time` | Local date / time of the first detection of the day |
-| `scientific name` | Name of the IOC World Bird List v15.2 (the one of Observation.org). BirdNET v2.4 labels are translated with a table built from the official IOC comparison with other checklists (see `inst/extdata/taxonomy/README.md`); classes that are not birds are left out; species split by IOC are translated according to the location when the rule is clear (e.g. *Cecropis daurica* → *Cecropis rufula* in Europe) and reported otherwise. Own equivalences with `equivalences = c("BirdNET name" = "IOC name")` |
+| `scientific name` | Name of the bird species in Observation.org. BirdNET v2.4 labels (eBird/Clements) are translated into the IOC World Bird List v15.2 and then into the species list of Observation.org, which follows IOC with its own lumps and genera (e.g. *Corvus cornix* → *Corvus corone*, *Saxicola stejnegeri* → *Saxicola maurus*; the BirdNET name is kept in `notes`). Every bird of BirdNET v2.4 has a valid name of Observation.org (see `inst/extdata/taxonomy/README.md`). Classes that are not birds are left out; species split by IOC are translated according to the location when the rule is clear (e.g. *Cecropis daurica* → *Cecropis rufula* in Europe) and reported otherwise. Own equivalences with `equivalences = c("BirdNET name" = "Observation.org name")` |
 | `lat` / `lng` / `accuracy` | Location of the recorder and its precision (m, at most 1000) |
 | `number` | 1 |
 | `notes` | `"Identified with BirdNET <version>"` (`"ID mediante BirdNET <version>"` in Spanish), whether it was validated by ear, and the best detection (file, second and confidence) |
 | `is certain` | `True` for the records validated by ear, `False` for the rest |
 | `method` / `counting method` | `Oído` / `Sin especificar` (values of the Observation.org import example) |
-| `external reference` | `AudioMoth_<ID>_<YYYYMMDD>_<IOC species>`, unique and stable |
+| `external reference` | `AudioMoth_<ID>_<YYYYMMDD>_<species>`, unique and stable |
 
 `method`, `counting_method` and `activity` are checked against the values
 that Observation.org accepts for birds. If the CSV is edited by hand (e.g.
@@ -314,7 +314,7 @@ Recordings at 250 kHz take longer (they are first converted to 48 kHz).
 | `Give the results folder with output` | In scripts (`Rscript`) the results folder must be given: `output = "~/AudiomothR_results/card_01"` |
 | Species from other continents | Check that `location_filter = TRUE` and that the coordinates are right (latitude first; west negative) |
 | `0 of the 3 requested examples meet the criteria` | See `species_summary()` or lower `min_confidence` / use `no_doubts = FALSE` |
-| A bird "without a name in the IOC World Bird List" | Add `equivalences = c("BirdNET name" = "IOC name")` in `export_observation()` |
+| A name "without a bird species in Observation.org" (only with own names) | Add `equivalences = c("BirdNET name" = "Observation.org name")` in `export_observation()` |
 | Messages | `options(AudiomothR.quiet = TRUE)` hides the informative messages (warnings are always shown) |
 
 ## 14. Origin of the code, data and licences

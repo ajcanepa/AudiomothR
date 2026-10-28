@@ -9,14 +9,19 @@
 #     (files labels/en_us.txt and labels/en_uk.txt).
 #   - IOC World Bird List v15.2 compared with other checklists:
 #     https://www.worldbirdnames.org/IOC_15.2_vs_other_lists.xlsx
+#   - Names of the birds of Observation.org (export of the species list of
+#     the Aves group, https://observation.org, downloaded on 2026-10-28 as
+#     "observation-2026-10-28-12-34-especies de Aves en Observation.org.csv"):
+#     Observation.org follows the IOC list with its own lumps, genera and
+#     synonyms, and its import only accepts its own names.
 #   - IOC World Bird List v15.2 with English and Spanish names (the previous
 #     inst/extdata/taxonomia/ioc_15.2_aves.csv of AudiomothR 0.2.0, built from
 #     https://worldbirdnames.org/Multiling%20IOC%2015.2.xlsx).
 #
 # Usage, from the package root:
 #   Rscript data-raw/build_taxonomy.R <folder with the downloaded files>
-# The folder must contain labels/en_us.txt, labels/en_uk.txt, ioc_vs.xlsx and
-# ioc_15.2_aves.csv. Needs the 'readxl' package (not a package dependency).
+# The folder must contain labels/en_us.txt, labels/en_uk.txt, ioc_vs.xlsx,
+# ioc_15.2_aves.csv and observation_birds.csv (the Observation.org export). Needs the 'readxl' package (not a package dependency).
 #
 # Matching rules, in order, for each BirdNET label:
 #   1. Not a bird (non-species classes such as "Engine" or "Human vocal", and
@@ -35,6 +40,14 @@
 #   5. Same English name in IOC 15.2 (match = "english").
 # Anything left is a bird without an IOC name (match = "none") and is listed
 # at the end so that it can be added to the manual table.
+#
+# Then, the name of Observation.org (obs_name, the one exported), in order:
+#   a. the IOC name when it is a species of Observation.org ("ioc");
+#   b. the species of Observation.org of which the IOC or the BirdNET name is a
+#      synonym or a subspecies ("lumped");
+#   c. the BirdNET name when it is a species of Observation.org ("birdnet");
+#   d. the manual table `manual_obs` ("manual").
+# The species of regional_rules.csv must also be species of Observation.org.
 
 args <- commandArgs(TRUE)
 src <- if (length(args)) args[1] else "data-raw/sources"
@@ -192,6 +205,45 @@ tab$match[is.na(tab$match)] <- "none"
 tab$ioc_english <- ioc$english[match(tab$ioc_name, ioc$ioc_name)]
 stopifnot(all(is.na(tab$ioc_name) | tab$ioc_name %in% ioc$ioc_name))
 
+# --- Observation.org -----------------------------------------------------------
+
+obs <- utils::read.csv(file.path(src, "observation_birds.csv"), encoding = "UTF-8",
+                       stringsAsFactors = FALSE, check.names = FALSE)
+obs_species <- obs$`scientific name`[obs$type == "Especie"]
+# Synonyms and subspecies -> their species
+child <- obs[obs$type %in% c("Sin\u00f3nimo", "Subespecie") & !is.na(obs$`parent species id`), ]
+child$species <- obs$`scientific name`[match(child$`parent species id`, obs$id)]
+child <- child[child$species %in% obs_species, ]
+
+# Species of BirdNET/IOC that Observation.org places elsewhere, checked by hand
+manual_obs <- c(
+  "Glossopsitta concinna" = "Trichoglossus concinnus",
+  "Pseudeos cardinalis" = "Chalcopsitta cardinalis",
+  "Tumbezia salvini" = "Ochthoeca salvini",
+  "Euptilotus eutilotus" = "Microtarsus eutilotus",
+  "Otus madagascariensis" = "Otus rutilus",                 # O. rutilus madagascariensis
+  "Pericrocotus speciosus" = "Pericrocotus flammeus",       # P. flammeus speciosus
+  "Porphyrio madagascariensis" = "Porphyrio porphyrio",     # P. porphyrio madagascariensis
+  "Saxicola stejnegeri" = "Saxicola maurus",                # S. maurus stejnegeri
+  "Sturnia blythii" = "Sturnia malabarica"                  # S. malabarica blythii
+)
+stopifnot(all(manual_obs %in% obs_species))
+
+bird <- tab$match != "not_bird"
+tab$obs_name <- NA_character_
+tab$obs_match <- NA_character_
+set_obs <- function(rows, names, how) {
+  rows <- rows & is.na(tab$obs_name) & !is.na(names)
+  tab$obs_name[rows] <<- names[rows]
+  tab$obs_match[rows] <<- how
+}
+set_obs(bird & tab$ioc_name %in% obs_species, tab$ioc_name, "ioc")
+set_obs(bird, child$species[match(tab$ioc_name, child$`scientific name`)], "lumped")
+set_obs(bird, child$species[match(tab$birdnet_name, child$`scientific name`)], "lumped")
+set_obs(bird & tab$birdnet_name %in% obs_species, tab$birdnet_name, "birdnet")
+set_obs(bird, unname(manual_obs[tab$ioc_name]), "manual")
+stopifnot(all(tab$obs_name[bird] %in% obs_species))
+
 # --- Write -------------------------------------------------------------------
 
 write_gz <- function(x, file) {
@@ -199,9 +251,17 @@ write_gz <- function(x, file) {
   on.exit(close(con))
   utils::write.csv(x, con, row.names = FALSE, na = "")
 }
-write_gz(tab[, c("birdnet_name", "birdnet_english", "ioc_name", "ioc_english", "match")],
+write_gz(tab[, c("birdnet_name", "birdnet_english", "ioc_name", "ioc_english", "match",
+                "obs_name", "obs_match")],
          file.path(out_dir, "birdnet_v2.4_to_ioc_15.2.csv.gz"))
 write_gz(ioc, file.path(out_dir, "ioc_15.2_birds.csv.gz"))
+# Species of Observation.org and their synonyms (scientific names only), to
+# check the names given by the user (equivalences, relabelled records)
+syn <- obs[obs$type == "Sin\u00f3nimo" & !is.na(obs$`parent species id`), ]
+write_gz(rbind(data.frame(scientific_name = obs_species, species = obs_species),
+               data.frame(scientific_name = syn$`scientific name`,
+                          species = obs$`scientific name`[match(syn$`parent species id`, obs$id)])),
+         file.path(out_dir, "observation_birds.csv.gz"))
 
 print(table(tab$match))
 cat("\nBirds without an IOC name (add them to `manual`):\n")
@@ -210,4 +270,10 @@ cat("\nSame binomial, split in IOC (export_observation() warns):\n")
 print(tab[tab$match == "split", c("birdnet_name", "birdnet_uk", "ioc_english")], row.names = FALSE)
 
 rules <- utils::read.csv(file.path(out_dir, "regional_rules.csv"), stringsAsFactors = FALSE)
-stopifnot(all(rules$ioc_name %in% ioc$ioc_name), all(rules$birdnet_name %in% tab$birdnet_name))
+stopifnot(all(rules$ioc_name %in% ioc$ioc_name), all(rules$birdnet_name %in% tab$birdnet_name),
+          all(rules$ioc_name %in% obs_species))
+
+cat("\nName of Observation.org:\n")
+print(table(tab$obs_match))
+cat("\nBirdNET species exported under another species of Observation.org:\n")
+print(tab[tab$obs_match %in% c("lumped", "manual"), c("birdnet_name", "ioc_name", "obs_name")], row.names = FALSE)

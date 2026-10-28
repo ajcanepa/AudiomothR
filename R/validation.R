@@ -282,7 +282,7 @@ read_validation <- function(am, file = NULL, required = FALSE, quiet = FALSE) {
   }
   v$new_name <- trimws(sub("\\s+\u2014.*$", "", v$new_name))
   v$new_name[!nzchar(v$new_name %|NA|% "")] <- NA_character_
-  known <- c(taxonomy_table()$birdnet_name, ioc_table()$ioc_name)
+  known <- c(taxonomy_table()$birdnet_name, ioc_table()$ioc_name, observation_table()$scientific_name)
   unknown <- !is.na(v$new_name) & !v$new_name %in% known
   if (any(unknown)) {
     cli::cli_warn("These new names are not BirdNET or IOC species and are ignored: {.val {unique(v$new_name[unknown])}}.")

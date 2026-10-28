@@ -87,6 +87,12 @@
   reach Observation.org. Species split by IOC are translated according to
   the location (`regional_rules.csv`) or reported. Own `equivalences` are
   checked.
+* Observation.org: the exported names are now those of the species list of
+  Observation.org (downloaded on 2026-10-28), which differs from IOC in some
+  lumps and genera: every bird of BirdNET v2.4 has a valid name (e.g.
+  *Corvus cornix* → *Corvus corone*, *Saxicola stejnegeri* → *Saxicola
+  maurus*, *Tumbezia salvini* → *Ochthoeca salvini*), and the BirdNET name is
+  kept in the notes when they differ.
 * BirdNET cache: changing a parameter no longer deletes previous results;
   arguments are checked before anything is written; interrupted conversions
   and results are written atomically and detected; errors are recorded in
