@@ -299,7 +299,7 @@ shown. The report folder can be edited (`report.qmd`) and rendered again with
 am <- process_audiomoth(
   folder = example_card,
   coordinates = "41.00, -3.00",
-  output = "~/AudioMoth_results/example",
+  output = "~/AudiomothR_results/example_box",
   example_species = "auto",          # the species proposed by detected_species()
   example_confidence = 0.5,
   validation = TRUE,                 # creates the validation page

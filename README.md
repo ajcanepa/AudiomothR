@@ -102,7 +102,7 @@ library(AudiomothR)
 
 # 1. Card, CONFIG.TXT, location and inventory of the recordings
 am <- read_audiomoth("/path/to/the/card", coordinates = "41.123456, -3.123456",
-                     output = "~/AudioMoth_results/card_01")
+                     output = "~/AudiomothR_results/box_01")
 
 # 2-3. Audio ready for BirdNET and analysis (it resumes if interrupted)
 am <- prepare_audio(am)                 # optional: analyze_birdnet() does it
@@ -165,7 +165,7 @@ Recordings already analysed are not analysed again: just repeat
 
 ```r
 am <- read_audiomoth("/path/to/the/card", coordinates = "41.123456, -3.123456",
-                     output = "~/AudioMoth_results/card_01")
+                     output = "~/AudiomothR_results/box_01")
 am <- analyze_birdnet(am)     # only analyses what is missing
 ```
 
@@ -379,7 +379,7 @@ card, including the validation by ear.
 ## 16. Tests
 
 ```r
-devtools::test()   # more than 200 checks; conversion, video and report tests are
+devtools::test()   # more than 300 checks; conversion, video and report tests are
                    # skipped without ffmpeg, without Quarto or on CRAN
 ```
 
