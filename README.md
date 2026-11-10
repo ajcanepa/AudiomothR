@@ -25,6 +25,12 @@ to the records of a citizen-science platform:
    of Observation.org.
 6. Create a **PDF report** of one or several recorders.
 
+> **New to AudiomothR?** Follow the three vignettes in order, with the
+> example card of the package: `vignette("audiomothr-1-workflow")` (the
+> complete workflow), `vignette("audiomothr-2-species")` (which species
+> BirdNET looks for) and `vignette("audiomothr-3-boxes")` (several cards,
+> boxes and reports). See section 15.
+
 ---
 
 ## 1. Requirements
@@ -205,7 +211,7 @@ visited areas**. Then:
 
 Names of BirdNET, IOC, Observation.org or GBIF are accepted. The probability
 of occurrence is always kept in `location_prob`, and the validation page
-shows first the least plausible records. See the vignette for the details.
+shows first the least plausible records. See `vignette("audiomothr-2-species")` for the details.
 
 ### Resuming the work another day
 
@@ -412,7 +418,7 @@ Recordings at 250 kHz take longer (they are first converted to 48 kHz).
   `inst/COPYRIGHTS` and `inst/extdata/taxonomy/README.md`; the taxonomy
   tables are rebuilt with `data-raw/build_taxonomy.R`.
 
-## 15. Example data and vignette
+## 15. Example data and vignettes
 
 The package includes an example AudioMoth card in
 `inst/extdata/example/card/`
@@ -422,10 +428,26 @@ The package includes an example AudioMoth card in
 files were cut to 0.05 s (10 of the 16 appear with `problem: "duration < 3
 s"`, on purpose); 6 files keep ~7 s of real song.
 `inst/extdata/example/birdnet_detections.csv` has the detections that BirdNET
-v2.4 returned for this card.
+v2.4 returned for this card, `species_list.csv` is a template of an own list
+of species, and `gbif_species_list.csv` is the list of the species observed
+in GBIF around the example site (made with `gbif_species_list()` on
+2026-11-10).
 
-See `vignette("audiomothr")` for a complete tour, step by step, with this
-card, including the validation by ear.
+Three vignettes, to be read in order, go through everything with this card:
+
+1. `vignette("audiomothr-1-workflow")`, **Getting started: the complete
+   workflow**: installation and requirements, every step from the card to
+   Observation.org and the PDF report, with what each one produces, the
+   validation by ear and how to solve the usual problems.
+2. `vignette("audiomothr-2-species")`, **Which species BirdNET looks for**:
+   the location filter, own lists of species (also those of
+   BirdNET-Analyzer) and lists built from GBIF.
+3. `vignette("audiomothr-3-boxes")`, **Several cards, several boxes and
+   reports**: the next cards of a box, a box that is moved, coming back
+   another day and reports of several boxes.
+
+With `remotes::install_github("ajcanepa/AudiomothR", build_vignettes = TRUE)`
+they can be read with `browseVignettes("AudiomothR")`.
 
 > **Before uploading the CSV to Observation.org, check it.** BirdNET
 > identifications are automatic and sometimes wrong: validate at least the

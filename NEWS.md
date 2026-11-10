@@ -41,6 +41,15 @@
   when it may leave out species that are present, and the alternatives
   (lower threshold, own list, list from GBIF, no filter).
 * The vignette and the README recommend copying the card before working.
+* The vignette is now split into three, to be read in order: **1. Getting
+  started: the complete workflow** (`vignette("audiomothr-1-workflow")`,
+  every step and every function with the example card, with images of the
+  validation page and of the report, checks and a section of usual
+  problems), **2. Which species BirdNET looks for**
+  (`vignette("audiomothr-2-species")`) and **3. Several cards, several boxes
+  and reports** (`vignette("audiomothr-3-boxes")`).
+* New example data: `inst/extdata/example/gbif_species_list.csv`, the list
+  of the species observed in GBIF around the example site.
 
 ## Other changes
 

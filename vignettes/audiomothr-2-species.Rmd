@@ -1,0 +1,369 @@
+---
+title: "2. Which species BirdNET looks for"
+subtitle: "AudiomothR version `r packageVersion('AudiomothR')`"
+author:
+  - Antonio Canepa-Oneto
+  - Patricia de la Fuente Gamero
+  - José Antonio Barbero-Aparicio
+  - Claudia Fernández-Ruiz
+  - Alicia Olivares
+  - Raúl Marticorena-Sánchez
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+abstract: |
+  How AudiomothR chooses the species that BirdNET may propose: the location
+  filter of BirdNET (how it works, where its values come from and when it
+  leaves out species that are present), own lists of species (vectors, the
+  species lists of BirdNET-Analyzer, CSV files) and lists of the species
+  observed around the recorder, built from GBIF without an account.
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{2. Which species BirdNET looks for}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+# Names not found in the tables of the package are not looked up in GBIF here
+options(AudiomothR.gbif_synonyms = FALSE)
+```
+
+This is the second of three vignettes of AudiomothR. It assumes that you
+have followed the first one (`vignette("audiomothr-1-workflow")`), where the
+example card was read and analysed. Here we look in detail at a single
+decision of step 3 (`analyze_birdnet()`): **which species BirdNET is allowed
+to propose**. It matters a lot: it decides which species can appear in your
+results at all.
+
+```{r}
+library(AudiomothR)
+```
+
+## Three ways of choosing the species
+
+BirdNET v2.4 knows about 6,500 classes: birds of the whole world, plus some
+amphibians, insects, mammals and sounds such as "Human vocal", "Dog" or
+"Engine". Without any limit it often proposes species of other continents,
+so `analyze_birdnet()` offers three options:
+
+| Option | How | When to use it |
+|---|---|---|
+| **1. Location filter** (default) | `analyze_birdnet(am)` | Common species, well visited areas, records for citizen science |
+| **2. Own list of species** | `analyze_birdnet(am, species_list = ...)` | Rare, nocturnal or steppe species; little visited areas; target species of a project |
+| **3. No filter** | `analyze_birdnet(am, location_filter = FALSE)` | Exploratory work, when every record is going to be checked by ear |
+
+## Option 1: the location filter (default)
+
+### How it works
+
+Besides the model that listens to the audio, BirdNET has a **metadata
+(geographic) model**, trained with the checklists of eBird. Given a latitude,
+a longitude and a week of the year, it returns for every species a
+**probability of occurrence**: roughly, how often the species is reported in
+eBird checklists around that place in that week. BirdNET divides the year
+into 48 weeks, four per month (days 1-7, 8-14, 15-21 and 22 to the end).
+
+`analyze_birdnet()` asks for it at the location of each deployment and for
+the week of each recording. **Only the species with a probability of at
+least `location_threshold` (0.03, the value of BirdNET) are analysed; the
+others are never proposed, whatever the audio.** At the example site, in
+October, about 156 species pass the filter:
+
+```
+Location filter: 156 expected species per site and week on average.
+```
+
+The probabilities are kept, for every species, place and week, in
+`location_scores.csv` inside the cache of the analysis, and the probability
+of each detected species is in the column `location_prob` of the detections:
+
+```{r, eval = FALSE}
+scores <- read.csv(file.path(am$analysis$cache, "location_scores.csv"))
+head(scores[order(-scores$probability), ])          # the most expected species
+scores[scores$scientific_name == "Asio otus", ]     # how expected is the long-eared owl?
+```
+
+### When it fails
+
+The filter removes most absurd identifications, but it inherits the biases
+of eBird. It may leave out species that **are** present:
+
+- in **little visited areas**, with few eBird checklists;
+- **nocturnal or secretive species**, rarely reported in daytime checklists
+  (owls, the Eurasian stone-curlew, nightjars);
+- **scarce or local species** (sandgrouse and other steppe birds, scarce
+  migrants);
+- recordings made **outside the usual season** of the species at the site.
+
+A real example: in the steppes of Villafáfila (Zamora, Spain; 41.84°N
+5.60°W), in May (weeks 17 and 19 of BirdNET), the filter keeps the Eurasian
+stone-curlew (probability 0.042), but leaves out the little bustard (0.028),
+the Eurasian scops owl (0.026), the pin-tailed and the black-bellied
+sandgrouse (0.010 and 0.009) and the long-eared owl (0.002). All of them
+have been observed within 25 km in spring, according to GBIF. With the
+default filter, **those species can never appear in the results**, even if
+they sing in front of the recorder.
+
+### Adjusting it
+
+```{r, eval = FALSE}
+am <- analyze_birdnet(am, location_threshold = 0.01)   # a lower threshold: more species
+am <- analyze_birdnet(am, location_filter = FALSE)      # no filter at all (option 3)
+```
+
+A lower threshold keeps more species (and more mistakes); in Villafáfila,
+0.01 would keep the little bustard, the scops owl and the pin-tailed
+sandgrouse, but not the black-bellied sandgrouse (0.009) nor the long-eared
+owl (0.002): for such species, a list is better. Each combination of parameters is a separate analysis
+in the cache: going back to the default threshold does not analyse the
+recordings again.
+
+## Option 2: an own list of species
+
+With `species_list`, **only the species of the list are analysed**, wherever
+the recorder is, and the location filter is not applied. The list can be
+given in four ways.
+
+### a) A vector of scientific names
+
+```{r}
+my_species <- c("Burhinus oedicnemus", "Asio otus", "Otus scops", "Tetrax tetrax",
+                "Pterocles orientalis", "Pterocles alchata")
+checked <- read_species_list(my_species)
+checked
+```
+
+`read_species_list()` is what `analyze_birdnet()` uses to read the list.
+Run it first to check your list: it tells you how many BirdNET species it
+found and warns about the names it does not know. The column `match` says
+how each name was found (`birdnet` = the BirdNET name itself).
+
+### b) The species list of BirdNET-Analyzer
+
+The desktop version of BirdNET (BirdNET-Analyzer) uses a text file with one
+species per line, as `Scientific name_Common name`. Those files can be used
+as they are:
+
+```{r}
+analyzer_list <- file.path(tempdir(), "my_species_list.txt")
+writeLines(c(
+  "# Steppe birds of my study area",
+  "Burhinus oedicnemus_Eurasian Thick-knee",
+  "Tetrax tetrax_Little Bustard",
+  "Pterocles orientalis_Black-bellied Sandgrouse",
+  "Asio otus_Long-eared Owl"
+), analyzer_list)
+
+read_species_list(analyzer_list)
+```
+
+Empty lines and lines starting with `#` are ignored; the part after `_`
+too, so a file with only scientific names works as well.
+
+### c) A CSV file (e.g. made with a spreadsheet)
+
+A CSV file with **a column of scientific names**. The column is found by its
+name: `scientific_name`, `scientific name`, `Scientific Name`, `species`,
+`taxon`... (any case); if none is found, the first column is used. Other
+columns are ignored, so you can keep notes in them. The package includes a
+template:
+
+```{r}
+template <- system.file("extdata", "example", "species_list.csv", package = "AudiomothR")
+read.csv(template)
+```
+
+To make your own: copy the template, open it with a spreadsheet, write one
+species per row and save it as CSV (comma or semicolon separated):
+
+```{r, eval = FALSE}
+file.copy(template, "~/my_species_list.csv")
+```
+
+### d) A data frame in R
+
+Any table with a column of scientific names, such as the result of
+`gbif_species_list()` (option 2 from GBIF, below) or of `read_species_list()`
+itself.
+
+### Names from other taxonomies
+
+BirdNET v2.4 uses the eBird/Clements taxonomy of 2021, but your list may
+come from elsewhere. Each name is looked up, in this order, as a name of
+BirdNET, of the IOC World Bird List v15.2, of Observation.org (with its
+synonyms) and of GBIF:
+
+```{r}
+read_species_list(c("Carduelis chloris", "Cyanistes caeruleus", "Otis tarda", "Burhinus oedicnemis"))
+```
+
+- *Carduelis chloris*, an old name still kept as a synonym by
+  Observation.org, becomes *Chloris chloris*.
+- *Otis tarda*: the great bustard is a real species, but **BirdNET v2.4 has
+  no model for it**, so it cannot be detected.
+- *Burhinus oedicnemis*: a typo. Check the names that are reported!
+
+Names that are still not found are looked up in GBIF when there is an
+Internet connection (e.g. *Parus caeruleus* → *Cyanistes caeruleus*). When a
+name stands for several BirdNET species (e.g. a species that IOC lumps but
+BirdNET splits), all of them are kept.
+
+### Analysing with the list
+
+```{r, eval = FALSE}
+am <- analyze_birdnet(am, species_list = analyzer_list)      # or a vector, a CSV, a data frame
+```
+
+With BirdNET installed, it prints:
+
+```
+✔ Species list: 4 species of BirdNET from 4 names.
+BirdNET: 6 recordings; 6 pending.
+Loading the BirdNET model...
+Species list: 4 species (the location filter is not applied).
+✔ 0 detections of 0 species saved in '<output>/AudioMoth_FACADE0012345678_detections.csv'.
+```
+
+(None of those steppe birds sings in the example card.) Things to know:
+
+- The list is saved with the results of the analysis
+  (`birdnet/<ID>_<key>/species_list.csv`), and the PDF report says that an
+  own list was used.
+- **Each list is a different analysis** with its own cache: going back to a
+  list used before, or to the location filter, reuses its results.
+- `location_prob` is still computed, so the validation page still shows
+  first the species that are unusual at the site.
+- In `process_audiomoth()`, add `species_list = ...` like any other argument
+  of `analyze_birdnet()`.
+
+## Option 2 from GBIF: the species observed around the site
+
+The best list is often that of the species **actually observed** around the
+recorder. GBIF (<https://www.gbif.org>) gathers the observations of eBird,
+Observation.org and iNaturalist, among many others, and
+`gbif_species_list()` asks it, **without an account or a key** (it only
+needs an Internet connection), which bird species were observed:
+
+- within `radius_km` of each deployment of the box (25 km by default);
+- in the months of the recordings (or `months = 1:12` for the whole year);
+- in the last ten years (`years = c(2015, 2026)` to change them);
+- in the datasets of eBird, Observation.org and iNaturalist (`datasets =
+  "all"` for every dataset of GBIF, including museum collections).
+
+```{r, eval = FALSE}
+gbif_list <- gbif_species_list(am, radius_km = 25, file = "~/species_box_01.csv")
+```
+
+```
+Asking GBIF for the bird species within 25 km of 1 site (months 10; 2016-2026)...
+✔ 109 species of BirdNET observed in GBIF (with ≥ 1 occurrence).
+ℹ 2 other species of GBIF cannot be detected by BirdNET (attribute `not_in_birdnet`).
+✔ List saved in '~/species_box_01.csv': review it and give it to analyze_birdnet() with species_list.
+```
+
+The result of that query for the example site (made on 2026-11-10) is
+included in the package, so it can be looked at here without Internet:
+
+```{r}
+gbif_list <- read.csv(system.file("extdata", "example", "gbif_species_list.csv",
+                                  package = "AudiomothR"))
+nrow(gbif_list)
+head(gbif_list, 10)
+```
+
+- `scientific_name`, `english_name`: the species, with BirdNET names.
+- `gbif_name`: its name in GBIF (GBIF resolves the synonyms).
+- `records`: number of observations in GBIF with those criteria. Species
+  with few records may be rare, or mistakes.
+- `match`: `gbif`, or `gbif (spelling)` when the GBIF name only differs in
+  its spelling.
+
+The four species that BirdNET detected in the example card are in the list:
+
+```{r}
+gbif_list[gbif_list$scientific_name %in% c("Motacilla cinerea", "Motacilla alba",
+                                           "Cettia cetti", "Troglodytes troglodytes"), ]
+```
+
+### Reviewing, combining and using the list
+
+The list is an ordinary table, so it can be edited before using it, e.g. to
+leave out species with a single observation and to add the target species of
+a project:
+
+```{r}
+reviewed <- gbif_list[gbif_list$records >= 2, ]                     # (or min_records = 2)
+reviewed <- unique(c(reviewed$scientific_name, my_species))         # + the steppe birds
+length(reviewed)
+```
+
+```{r, eval = FALSE}
+am <- analyze_birdnet(am, species_list = reviewed)
+# or directly
+am <- analyze_birdnet(am, species_list = gbif_species_list(am, radius_km = 30))
+# or after editing the CSV saved with file = ... in a spreadsheet
+am <- analyze_birdnet(am, species_list = "~/species_box_01.csv")
+```
+
+### How wide should the area be?
+
+- **25-50 km**, or a whole province, usually gives a list complete enough
+  to include the scarce species without bringing in those of other regions.
+- In **little visited areas**, use a larger radius (or `months = 1:12`).
+- With `min_records = 2` or more, species recorded only once (perhaps by
+  mistake) are left out.
+- Very large radii bring in species of other habitats (the coast, the
+  mountains), which BirdNET will then be allowed to propose.
+
+The species of GBIF that BirdNET cannot detect are in
+`attr(gbif_list, "not_in_birdnet")` (they are lost when the list is saved as
+CSV); here, the Bonelli's eagle (*Aquila fasciata*) and the great bustard
+(*Otis tarda*).
+
+### Citing the data
+
+The observations belong to the observers and to the publishers of each
+dataset. If a list from GBIF is used in a publication, cite GBIF and the
+query: the URLs of the queries are in `attr(gbif_list, "queries")` and the
+date in `attr(gbif_list, "date")` (e.g. "GBIF.org (2026) GBIF Occurrence
+Search, <URL>, accessed on 2026-11-10"). `gbif_species_list()` counts the
+observations of each species; it is not a GBIF download with a DOI.
+
+## Option 3: no filter
+
+```{r, eval = FALSE}
+am <- analyze_birdnet(am, location_filter = FALSE)
+```
+
+All the classes of BirdNET are analysed. Nothing is lost, but there will be
+mistakes with species of other continents. Use it only when every record is
+going to be checked by ear (`create_validation()`, which shows first the
+records with the lowest `location_prob`), or to explore what BirdNET hears.
+
+## Summary
+
+| You want... | Use |
+|---|---|
+| Records of the common species for Observation.org | The default (location filter) |
+| Some species you know are there are missing | `location_threshold = 0.01`, or a list |
+| Rare, nocturnal or steppe species | `species_list` with a list from GBIF (`gbif_species_list()`), edited |
+| The target species of a project only | `species_list = c(...)` or your BirdNET-Analyzer list |
+| To see everything BirdNET hears | `location_filter = FALSE` + validation by ear |
+
+Next: **vignette 3**, `vignette("audiomothr-3-boxes")`, for several cards
+of the same box, boxes that are moved and reports of several boxes.
+
+## How to cite
+
+See `citation("AudiomothR")` and the references of
+`vignette("audiomothr-1-workflow")`. When a list from GBIF is used in a
+publication, cite also GBIF and its queries (see *Citing the data* above).
+
+## Session information
+
+```{r}
+sessionInfo()
+```

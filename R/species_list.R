@@ -42,8 +42,8 @@
 #'   (BirdNET name), `english_name` (BirdNET), `input` (the name of the list)
 #'   and `match` (`"birdnet"`, `"ioc"`, `"observation"` or `"gbif"`). The
 #'   names that were not found are in the attribute `"not_found"`.
-#' @seealso [gbif_species_list()] to build a list from GBIF, and the vignette
-#'   (section "Which species BirdNET looks for").
+#' @seealso [gbif_species_list()] to build a list from GBIF, and
+#'   `vignette("audiomothr-2-species")`.
 #' @examples
 #' # "Carduelis chloris" is a synonym (Observation.org) of Chloris chloris
 #' read_species_list(c("Burhinus oedicnemus", "Asio otus", "Carduelis chloris"))

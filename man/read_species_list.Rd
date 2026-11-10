@@ -62,6 +62,6 @@ read_species_list(system.file("extdata", "example", "species_list.csv",
                               package = "AudiomothR"))
 }
 \seealso{
-\code{\link[=gbif_species_list]{gbif_species_list()}} to build a list from GBIF, and the vignette
-(section "Which species BirdNET looks for").
+\code{\link[=gbif_species_list]{gbif_species_list()}} to build a list from GBIF, and
+\code{vignette("audiomothr-2-species")}.
 }
