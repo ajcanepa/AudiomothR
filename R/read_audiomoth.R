@@ -409,9 +409,8 @@ copy_card <- function(folder, copy_to, output, config) {
   # The results folder may be inside the card: its files are not copied (but
   # when the folder read is itself inside the results folder, i.e. a copy
   # made before with copy_to = TRUE, all its files are kept)
-  under <- function(x, dir) startsWith(x, paste0(dir, "/")) | startsWith(x, paste0(dir, .Platform$file.sep))
-  if (!under(folder, output)) {
-    files <- files[!under(normalizePath(file.path(folder, files), mustWork = FALSE), output)]
+  if (!path_under(folder, output)) {
+    files <- files[!path_under(normalizePath(file.path(folder, files), mustWork = FALSE), output)]
   }
   wav <- files[grepl("\\.wav$", files, ignore.case = TRUE)]
   if (length(wav) == 0) abort("No WAV files were found in {.file {folder}}: nothing to copy.")
@@ -431,7 +430,7 @@ copy_card <- function(folder, copy_to, output, config) {
     inform("i" = "{.file {folder}} is already the copy of the card.")
     return(folder)
   }
-  if (startsWith(dest, paste0(folder, "/")) || startsWith(dest, paste0(folder, .Platform$file.sep))) {
+  if (path_under(dest, folder)) {
     abort("The copy cannot be made inside the card ({.file {dest}}).",
           "i" = "Give a {.arg copy_to} folder (or an {.arg output} folder) outside the card.")
   }
@@ -559,8 +558,7 @@ inventory_wav <- function(folder, config, time_zone, output) {
   paths <- normalizePath(paths, mustWork = FALSE)
   # A results folder inside the card is left out (but not when the folder read
   # is itself inside the results folder: the copy made with copy_to = TRUE)
-  under <- function(x, dir) startsWith(x, paste0(dir, .Platform$file.sep)) | startsWith(x, paste0(dir, "/"))
-  if (!under(folder, output)) paths <- paths[!under(paths, output)]
+  if (!path_under(folder, output)) paths <- paths[!path_under(paths, output)]
   relative <- substring(paths, nchar(folder) + 2)
   in_day <- grepl("^[0-9]{8}[/\\\\][^/\\\\]+$", relative) | !grepl("[/\\\\]", relative)
   if (any(!in_day)) {

@@ -69,3 +69,13 @@ test_that("process_audiomoth() passes copy_to", {
                       export = FALSE, language = "en_us"))))
   expect_equal(am$folder, normalizePath(file.path(out, "recordings", "20261010-20261011")))
 })
+
+test_that("paths inside a folder are recognised with any separator (Windows)", {
+  under <- AudiomothR:::path_under
+  expect_true(under("C:\\Users\\me\\card\\results\\x.wav", "C:\\Users\\me\\card"))
+  expect_true(under("C:/Users/me/card/results", "C:\\Users\\me\\card\\"))
+  expect_false(under("C:\\Users\\me\\card2\\x.wav", "C:\\Users\\me\\card"))
+  expect_false(under("C:\\Users\\me\\card", "C:\\Users\\me\\card"))
+  expect_true(under("/media/SD/results/a.csv", "/media/SD"))
+  expect_false(under("/media/SDX/a.csv", "/media/SD"))
+})

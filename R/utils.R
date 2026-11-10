@@ -133,6 +133,21 @@ read_csv <- function(file) {
                   colClasses = cls, fileEncoding = "UTF-8-BOM")
 }
 
+#' TRUE for the paths that are inside the folder `dir`
+#'
+#' Works with both separators: normalizePath() gives "\\" on Windows, where
+#' .Platform$file.sep is "/", and paths may also come with "/". The case is
+#' ignored on Windows and macOS, whose file systems usually ignore it.
+#' @noRd
+path_under <- function(x, dir) {
+  clean <- function(p) {
+    p <- gsub("\\\\", "/", p)
+    if (.Platform$OS.type == "windows" || Sys.info()[["sysname"]] == "Darwin") p <- tolower(p)
+    p
+  }
+  startsWith(clean(x), paste0(sub("/+$", "", clean(dir)), "/"))
+}
+
 #' Text that can be used as (part of) a file name on any system
 #' @noRd
 safe_name <- function(x) {
