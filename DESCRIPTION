@@ -59,4 +59,4 @@ SystemRequirements: ffmpeg (audio conversion, clips and videos), Python
     the PDF report; RStudio and Positron already include it)
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
-Config/roxygen2/version: 8.1.0
+Config/roxygen2/version: 8.1.1
