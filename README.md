@@ -8,10 +8,14 @@ to the records of a citizen-science platform:
 
 1. **Read the card**: configuration (`CONFIG.TXT`), location and metadata of
    each WAV file (start time in UTC, battery, temperature), with checks of
-   faulty, duplicated or triggered recordings.
+   faulty, duplicated or triggered recordings. Optionally, **copy the card to
+   the disk first** and work on the copy (the card can then be formatted).
 2. **Analyse the recordings with BirdNET** through
-   [birdnetR](https://birdnet-team.github.io/birdnetR/), with a species filter
-   by location and week, and a cache that resumes interrupted analyses.
+   [birdnetR](https://birdnet-team.github.io/birdnetR/), with the species
+   expected at the site and week (location filter) or an **own list of
+   species** (that of BirdNET-Analyzer, a CSV file, or one built from the
+   observations published in GBIF around the recorder), and a cache that
+   resumes interrupted analyses.
 3. **Review the species** and **extract examples**: the exact sound of the
    best detections, their spectrogram and a **video of the spectrogram** with
    the audio.
@@ -28,9 +32,10 @@ to the records of a citizen-science platform:
 | What | Required | What for | How to install |
 |---|---|---|---|
 | **R ≥ 4.1** | Yes | — | <https://cran.r-project.org> |
-| R packages `birdnetR`, `tuneR`, `processx`, `cli`, `reticulate`, `rlang` | Yes | BirdNET, audio, external programs, messages | Installed with AudiomothR |
+| R packages `birdnetR`, `tuneR`, `processx`, `cli`, `reticulate`, `rlang`, `jsonlite` | Yes | BirdNET, audio, external programs, messages | Installed with AudiomothR |
 | **ffmpeg** | Yes | Converting audio to 48 kHz, clips and MP4 videos | Linux: `sudo apt install ffmpeg` · macOS: `brew install ffmpeg` · Windows: `winget install ffmpeg` |
 | **Internet connection** (first time only) | Yes | birdnetR downloads its Python, TensorFlow and the BirdNET model | Automatic: Python does not need to be installed by hand |
+| Internet connection (later) | No | Only for `gbif_species_list()` (species observed around the site, from GBIF) and the map of the report | — |
 | ~3 GB of disk | Yes | Python environment of BirdNET (Python 3.11 and TensorFlow 2.15, in the reticulate/uv cache) and the model (73 MB) | Automatic with `setup_birdnet()` (or the first `analyze_birdnet()`) |
 | `seewave` | No | Spectrogram computation (AudiomothR has an equivalent one of its own) | `install.packages("seewave")` |
 | `rstudioapi` or `tcltk` | No | Dialog to choose the card folder | Come with RStudio / R |
@@ -43,7 +48,7 @@ to the records of a citizen-science platform:
 ```r
 install.packages("remotes")
 remotes::install_github("ajcanepa/AudiomothR")            # latest version
-remotes::install_github("ajcanepa/AudiomothR@v0.3.0")     # a given version
+remotes::install_github("ajcanepa/AudiomothR@v0.4.0")     # a given version
 ```
 
 Check that everything is ready:
@@ -82,6 +87,7 @@ am <- process_audiomoth(
   coordinates = "41°07'24.4\"N 3°07'24.4\"W",     # copied from Google Earth
   site = "River - bridge",                        # optional
   output = "~/AudiomothR_results/box_01",          # one folder per box (all its cards)
+  copy_to = TRUE,                                 # copy the card first and work on the copy
   example_species = "auto",                       # examples of the detected species
   validation = TRUE,                              # page to validate the records by ear
   report = TRUE                                   # PDF report (needs Quarto)
@@ -93,21 +99,27 @@ the daily folders (`20261006/`, `20261007/`...). The **output** folder keeps
 the results of the **box**: every new card of the same box is added to it
 (see "Several cards of the same box" below). When it is not given, it is
 asked for in the console, suggesting `~/AudiomothR_results/AudioMoth_<ID>` (or
-the folder chosen before for the same box).
+the folder chosen before for the same box). With **`copy_to = TRUE`** the
+card is first copied into `<output>/recordings/` and everything is done with
+the copy (see "Copying the card" below).
 
 ## 4. Step by step
 
 ```r
 library(AudiomothR)
 
-# 1. Card, CONFIG.TXT, location and inventory of the recordings
+# 1. Card, CONFIG.TXT, location and inventory of the recordings (copying the
+#    card to the disk first, recommended)
 am <- read_audiomoth("/path/to/the/card", coordinates = "41.123456, -3.123456",
-                     output = "~/AudiomothR_results/box_01")
+                     output = "~/AudiomothR_results/box_01", copy_to = TRUE)
 
 # 2-3. Audio ready for BirdNET and analysis (it resumes if interrupted)
 am <- prepare_audio(am)                 # optional: analyze_birdnet() does it
 am <- analyze_birdnet(am)               # common names in the language of the system
 am <- analyze_birdnet(am, language = "es")   # ...or in another one (no new analysis)
+# ...or only the species of an own list, instead of the location filter
+am <- analyze_birdnet(am, species_list = "~/species_list.txt")    # BirdNET-Analyzer list
+am <- analyze_birdnet(am, species_list = gbif_species_list(am))   # observed around, in GBIF
 
 # 4. Which species: prints a vector ready to copy, change the n and paste
 species <- detected_species(am)
@@ -159,6 +171,42 @@ none, it is asked for (Enter = the site of the previous card). The cards are
 listed in `AudioMoth_<ID>_deployments.csv`; the results of a card that is no
 longer connected are kept, and the report shows every site on the map.
 
+### Copying the card (recommended)
+
+By default the card is read where it is (it is never modified), and the
+steps that go back to the audio (examples, validation, a new analysis) need it
+connected. With `copy_to` the card is first copied to the disk and everything
+is done with the copy, so the card can be formatted for the next deployment:
+
+```r
+read_audiomoth("/media/SD", output = out, copy_to = TRUE)              # <output>/recordings/<dates>/
+read_audiomoth("/media/SD", output = out, copy_to = "/media/backup")   # /media/backup/AudioMoth_<ID>/<dates>/
+```
+
+The copy keeps the structure and dates of the card and checks the size of
+each file; an interrupted copy continues where it stopped. The original
+folder is kept in the column `card_folder` of `AudioMoth_<ID>_deployments.csv`.
+
+### Which species BirdNET looks for
+
+By default, only the species that the BirdNET metadata model (trained with
+eBird checklists) expects at the site and week of each recording, with a
+probability of occurrence ≥ 0.03 (`location_threshold`). It works well for
+common species, but it may leave out species that are present yet seldom
+reported to eBird: **nocturnal, secretive or scarce species, and little
+visited areas**. Then:
+
+| Option | Argument |
+|---|---|
+| Lower the threshold | `analyze_birdnet(am, location_threshold = 0.01)` |
+| Own list of species (vector, BirdNET-Analyzer `.txt`, CSV with a `scientific_name` column, data frame) | `analyze_birdnet(am, species_list = ...)`; check it with `read_species_list()`; template in `system.file("extdata", "example", "species_list.csv", package = "AudiomothR")` |
+| Species observed around the site in GBIF (eBird, Observation.org, iNaturalist), without an account | `species_list = gbif_species_list(am, radius_km = 25)` |
+| No filter (more mistakes: validate by ear) | `analyze_birdnet(am, location_filter = FALSE)` |
+
+Names of BirdNET, IOC, Observation.org or GBIF are accepted. The probability
+of occurrence is always kept in `location_prob`, and the validation page
+shows first the least plausible records. See the vignette for the details.
+
 ### Resuming the work another day
 
 Recordings already analysed are not analysed again: just repeat
@@ -185,11 +233,13 @@ it), `export_observation()` uses the current one.
 | `setup_birdnet()` | Installs and checks BirdNET (Python environment and model) | `TRUE` |
 | `choose_folder()` | Dialog to choose the folder of the card | Path |
 | `choose_output()` | Asks for the results folder in the console | Path |
-| `read_audiomoth(folder, coordinates, site, precision_m, time_zone, output)` | Reads `CONFIG.TXT`, the location and the metadata of all the WAV files; saves the inventory | `audiomoth` object (`am$config`, `am$location`, `am$recordings`) |
+| `read_audiomoth(folder, coordinates, site, precision_m, time_zone, output, copy_to)` | Reads `CONFIG.TXT`, the location and the metadata of all the WAV files (optionally copying the card to the disk first); saves the inventory | `audiomoth` object (`am$config`, `am$location`, `am$recordings`) |
 | `read_config(file)` | Reads a `CONFIG.TXT` file | List of settings |
 | `parse_coordinates(text)` | Reads coordinates copied from Google Earth / Maps or a GPS | `lat`, `lon`, `precision_m` |
 | `prepare_audio(am)` | Converts to 48 kHz mono what needs it (expanding triggered recordings) | `am` with `birdnet_path` |
-| `analyze_birdnet(am, min_confidence, language, version, location_filter, ...)` | Analyses with BirdNET and saves the CSV of detections | `am` with `am$detections` |
+| `analyze_birdnet(am, min_confidence, language, version, location_filter, location_threshold, species_list, ...)` | Analyses with BirdNET (location filter or own list of species) and saves the CSV of detections | `am` with `am$detections` |
+| `read_species_list(species_list)` | Reads a list of species (vector, BirdNET-Analyzer `.txt`, CSV, data frame) and translates it into BirdNET names | Data frame |
+| `gbif_species_list(x, radius_km, months, years, datasets, min_records, file)` | Species observed in GBIF around the site (eBird, Observation.org, iNaturalist), in BirdNET names | Data frame (usable as `species_list`) |
 | `read_detections(x)` | Reads the detections of an `am` or of an `AudioMoth_<ID>_detections.csv` | Data frame |
 | `species_summary(x, min_confidence)` | Summary by species: detections, days, confidence, probability of occurrence, candidate examples | Data frame |
 | `detected_species(x, min_confidence, example_confidence, n_max)` | Prints the detected species as a vector `c("species" = n, ...)` ready to paste into `extract_examples()`, and returns it | Named vector |
@@ -251,7 +301,7 @@ original UTC time.
 
 | Step | Criterion (default) | Argument |
 |---|---|---|
-| Analysis | Detections with confidence ≥ 0.10 are saved, only of the species expected at the site and week (BirdNET metadata model, threshold 0.03) | `analyze_birdnet(min_confidence, location_filter, location_threshold)` |
+| Analysis | Detections with confidence ≥ 0.10 are saved, only of the species expected at the site and week (BirdNET metadata model, threshold 0.03) or of an own list | `analyze_birdnet(min_confidence, location_filter, location_threshold, species_list)` |
 | Doubts | A detection has *no doubts* when BirdNET proposed no other species in the same 3 s window with confidence ≥ 0.1 | — |
 | Examples | Confidence **≥ 0.85** and **no doubts**; the ones with the highest confidence, at most one per recording | `extract_examples(min_confidence, no_doubts, n)` |
 | Validation | Records (species and day) with detections of confidence ≥ 0.5, from the least to the most plausible | `create_validation(min_confidence, min_detections)` |
@@ -268,7 +318,8 @@ gathers all the cards of the box):
 
 | File | Contents |
 |---|---|
-| `AudioMoth_<ID>_deployments.csv` | The cards (deployments) of the box: dates, site, location and its source |
+| `AudioMoth_<ID>_deployments.csv` | The cards (deployments) of the box: dates, site, location and its source, folder read and original card (`card_folder`) |
+| `recordings/<first date>-<last date>/` | Copy of each card (only with `copy_to = TRUE`) |
 | `AudioMoth_<ID>_recordings.csv` | Inventory (all the cards): file, day, UTC and local time, duration, sample rate, battery, temperature, problems and state of the analysis |
 | `AudioMoth_<ID>_detections.csv` | All the detections: file, local date and time, start and end (s), species, confidence, `n_labels_window`, `other_confidence_max`, `no_doubts`, `location_prob`, coordinates |
 | `AudioMoth_<ID>_observation.csv` / `.json` | Import file for Observation.org and the criteria used |
@@ -276,7 +327,7 @@ gathers all the cards of the box):
 | `examples/AudioMoth_<ID>_examples.csv` | Index of the examples (relative paths) |
 | `validation/` | Validation page, clips and decisions (`AudioMoth_<ID>_validation.csv`) |
 | `report/` | Quarto folder of the report (`report.qmd`, data and figures) and the PDF |
-| `birdnet/<ID>_<key>/` | BirdNET results per recording, parameters, versions (`metadata.txt`), errors and probability of occurrence of the species; do not delete it |
+| `birdnet/<ID>_<key>/` | BirdNET results per recording, parameters, versions (`metadata.txt`), errors, probability of occurrence of the species and the own list of species used (`species_list.csv`); do not delete it |
 | `audio_48k/` | 48 kHz mono copies (only when needed); they can be deleted once the analysis is finished |
 | `.inventory_cache.rds` | Metadata of the WAV files already read, so that reading the card again is fast |
 
@@ -343,6 +394,10 @@ Recordings at 250 kHz take longer (they are first converted to 48 kHz).
 | `Cannot download the BirdNET v2.4 model` | Check the connection and run `setup_birdnet()` again, or download the zip shown in the message and unzip it into the model folder (see Installation) |
 | `Give the results folder with output` | In scripts (`Rscript`) the results folder must be given: `output = "~/AudiomothR_results/box_01"` |
 | Species from other continents | Check that `location_filter = TRUE` and that the coordinates are right (latitude first; west negative) |
+| A species present at the site is never detected | The location filter may leave it out (nocturnal, scarce species, little visited areas): lower `location_threshold` or use a `species_list` (see "Which species BirdNET looks for") |
+| `... not species of BirdNET v2.4 and are ignored` | Names of the species list that BirdNET cannot detect (or typos); check the list with `read_species_list()` |
+| `GBIF does not answer` | `gbif_species_list()` needs an Internet connection; try again later |
+| Examples or validation without audio after formatting the card | Without `copy_to`, they need the card connected at the same path; read the cards with `copy_to` to keep a copy on the disk |
 | `0 of the 3 requested examples meet the criteria` | See `species_summary()` or lower `min_confidence` / use `no_doubts = FALSE` |
 | A name "without a bird species in Observation.org" (only with own names) | Add `equivalences = c("BirdNET name" = "Observation.org name")` in `export_observation()` |
 | Messages | `options(AudiomothR.quiet = TRUE)` hides the informative messages (warnings are always shown) |
@@ -379,7 +434,7 @@ card, including the validation by ear.
 ## 16. Tests
 
 ```r
-devtools::test()   # more than 300 checks; conversion, video and report tests are
+devtools::test()   # more than 350 checks; conversion, video and report tests are
                    # skipped without ffmpeg, without Quarto or on CRAN
 ```
 
@@ -392,7 +447,7 @@ If you use AudiomothR, cite the version you used (`citation("AudiomothR")`):
 > Canepa-Oneto A, de la Fuente Gamero P, Barbero-Aparicio JA,
 > Fernández-Ruiz C, Olivares A, Marticorena-Sánchez R (2026). *AudiomothR:
 > Acoustic Processing of AudioMoth Recordings with BirdNET*. R package
-> version 0.3.0. <https://doi.org/10.5281/zenodo.23646408>
+> version 0.4.0. <https://doi.org/10.5281/zenodo.23646408>
 
 Each version published on GitHub is archived in Zenodo with its own DOI; the
 DOI above always resolves to the latest version.

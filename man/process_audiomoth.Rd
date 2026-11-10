@@ -11,6 +11,7 @@ process_audiomoth(
   precision_m = NULL,
   time_zone = "Europe/Madrid",
   output = NULL,
+  copy_to = NULL,
   example_species = NULL,
   n_examples = 3,
   example_confidence = 0.85,
@@ -43,6 +44,10 @@ accepted and translated into the fixed zone \code{"Etc/GMT-2"}.}
 \item{output}{Results folder (it is created if needed). By default it is
 asked for with \code{\link[=choose_output]{choose_output()}}.}
 
+\item{copy_to}{Copy the card to the disk and work with the copy (see "Copy
+of the card"): \code{TRUE} (into the results folder) or the path of a backup
+folder. \code{NULL} (default): no copy, the card is read where it is.}
+
 \item{example_species}{Species of which to extract examples: names, a
 named vector \code{c("Cettia cetti" = 3, ...)} with the examples of each one
 (see \code{\link[=detected_species]{detected_species()}}) or \code{"auto"}, which takes the species and
@@ -66,7 +71,7 @@ CSV does not exist yet, \code{TRUE} always (an edited CSV is still kept), or
 \item{report}{Create a PDF report with \code{\link[=create_report]{create_report()}} (needs Quarto).}
 
 \item{...}{Other arguments for \code{\link[=analyze_birdnet]{analyze_birdnet()}} (e.g. \code{language},
-\code{min_confidence}, \code{location_threshold}).}
+\code{min_confidence}, \code{location_threshold}, \code{species_list}).}
 }
 \value{
 Invisibly, the \code{audiomoth} object with its detections.
@@ -74,7 +79,9 @@ Invisibly, the \code{audiomoth} object with its detections.
 \description{
 Chains all the steps:
 \enumerate{
-\item \code{\link[=read_audiomoth]{read_audiomoth()}}: folder, \code{CONFIG.TXT}, location and inventory.
+\item \code{\link[=read_audiomoth]{read_audiomoth()}}: folder, \code{CONFIG.TXT}, location and inventory (and,
+with \code{copy_to}, a copy of the card on the disk, which is used from then
+on).
 \item \code{\link[=prepare_audio]{prepare_audio()}}: conversion to 48 kHz mono when needed.
 \item \code{\link[=analyze_birdnet]{analyze_birdnet()}}: detections in \verb{AudioMoth_<ID>_detections.csv}.
 \item \code{\link[=export_observation]{export_observation()}}: \verb{AudioMoth_<ID>_observation.csv} (only the
@@ -96,9 +103,14 @@ If it is interrupted, running it again continues where it stopped. When
 \dontrun{
 am <- process_audiomoth(
   coordinates = "41.123456, -3.123456",    # copied from Google Earth
-  output = "~/AudiomothR_results/site_01",
+  output = "~/AudiomothR_results/box_01",
+  copy_to = TRUE,                          # copy the card first and work on the copy
   example_species = "auto",
   validation = TRUE
 )
+
+# With an own list of species instead of the location filter
+am <- process_audiomoth(output = "~/AudiomothR_results/box_01", copy_to = "/media/backup",
+                        species_list = "~/species_list.txt")
 }
 }

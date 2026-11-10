@@ -10,7 +10,8 @@ read_audiomoth(
   site = NULL,
   precision_m = NULL,
   time_zone = "Europe/Madrid",
-  output = NULL
+  output = NULL,
+  copy_to = NULL
 )
 }
 \arguments{
@@ -33,10 +34,15 @@ accepted and translated into the fixed zone \code{"Etc/GMT-2"}.}
 
 \item{output}{Results folder (it is created if needed). By default it is
 asked for with \code{\link[=choose_output]{choose_output()}}.}
+
+\item{copy_to}{Copy the card to the disk and work with the copy (see "Copy
+of the card"): \code{TRUE} (into the results folder) or the path of a backup
+folder. \code{NULL} (default): no copy, the card is read where it is.}
 }
 \value{
-An object of class \code{audiomoth}: a list with \code{folder}, \code{config},
-\code{location}, \code{site} and \code{deployment} (of this card), \code{time_zone},
+An object of class \code{audiomoth}: a list with \code{folder} (the copy when
+\code{copy_to} is used), \code{card_folder} (the original card, or \code{NULL}),
+\code{config}, \code{location}, \code{site} and \code{deployment} (of this card), \code{time_zone},
 \code{output}, \code{recordings} (data frame with one row per WAV file of all the
 cards of the box, with the \code{deployment}, \code{site}, \code{lat}, \code{lon} and
 \code{precision_m} of its deployment) and \code{deployments} (one row per card).
@@ -50,6 +56,23 @@ as \verb{AudioMoth_<ID>_recordings.csv} in the \code{output} folder. The audio i
 loaded.
 }
 \details{
+\strong{Copy of the card (recommended).} With \code{copy_to}, the card is first
+copied to the disk and everything is done with the copy: the card can be
+formatted for the next deployment as soon as the copy is finished, the
+recordings are kept as a backup, and the steps that go back to the audio
+(\code{\link[=extract_examples]{extract_examples()}}, \code{\link[=create_validation]{create_validation()}}, a new analysis) keep working
+after the card is gone. Without it, the card is read where it is (it is
+never modified), and those steps need the card connected at the same
+path. \code{copy_to = TRUE} copies the card into the results folder
+(\verb{<output>/recordings/<first date>-<last date>/}); a folder (e.g. on an
+external disk) copies it into \verb{<copy_to>/AudioMoth_<ID>/<first date>-<last date>/}, so one backup folder can keep the cards of every box. The copy
+keeps the structure of the card (\code{CONFIG.TXT} and daily folders) and the
+dates of the files; each file is checked by its size, and files already
+copied are skipped, so an interrupted copy continues where it stopped.
+The original folder is kept in the column \code{card_folder} of the
+deployments. Reading the copy again later (with \code{folder}) needs no
+\code{copy_to}.
+
 \strong{Location of the deployment.} Taken from \code{coordinates} when given (the
 recommended way, since the box may have moved); for a card read before,
 the location it was given then; otherwise from the \code{Location} field of
@@ -87,4 +110,9 @@ it must be given.
 card <- system.file("extdata", "example", "card", package = "AudiomothR")
 am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
 head(am$recordings[, c("file", "start_local", "duration_s", "valid", "problem")])
+
+# Copying the card first into the results folder (recommended with real cards)
+out <- tempfile()
+am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = out, copy_to = TRUE)
+am$folder   # the copy: <output>/recordings/20261007-20261015
 }

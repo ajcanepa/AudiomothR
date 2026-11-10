@@ -6,7 +6,7 @@
 \alias{AudiomothR-package}
 \title{AudiomothR: Acoustic Processing of 'AudioMoth' Recordings with 'BirdNET'}
 \description{
-Reads the cards of 'AudioMoth' recorders (Hill et al. 2018) \doi{10.1111/2041-210X.12955} ('CONFIG.TXT' file and daily folders), prepares the audio and analyses it with 'BirdNET' (Kahl et al. 2021) \doi{10.1016/j.ecoinf.2021.101236} through 'birdnetR'. Saves the detections as CSV files, extracts high-confidence examples of the chosen species with their audio and a video of the spectrogram, creates a web page to validate the records by ear, and converts the detections into the import format of 'Observation.org', translating the species names into the IOC World Bird List. It also creates a PDF report with 'Quarto' of one or several recorders, with a map, the state of the recordings and the detected species.
+Reads the cards of 'AudioMoth' recorders (Hill et al. 2018) \doi{10.1111/2041-210X.12955} ('CONFIG.TXT' file and daily folders), optionally copies them to the disk, prepares the audio and analyses it with 'BirdNET' (Kahl et al. 2021) \doi{10.1016/j.ecoinf.2021.101236} through 'birdnetR', with the species expected at the site or an own list of species (which can be built from the observations published in 'GBIF' around the recorder). Saves the detections as CSV files, extracts high-confidence examples of the chosen species with their audio and a video of the spectrogram, creates a web page to validate the records by ear, and converts the detections into the import format of 'Observation.org', translating the species names into the IOC World Bird List. It also creates a PDF report with 'Quarto' of one or several recorders, with a map, the state of the recordings and the detected species.
 }
 \seealso{
 Useful links:

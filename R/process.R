@@ -1,7 +1,9 @@
 #' Processes an AudioMoth card from start to end
 #'
 #' Chains all the steps:
-#' 1. [read_audiomoth()]: folder, `CONFIG.TXT`, location and inventory.
+#' 1. [read_audiomoth()]: folder, `CONFIG.TXT`, location and inventory (and,
+#'    with `copy_to`, a copy of the card on the disk, which is used from then
+#'    on).
 #' 2. [prepare_audio()]: conversion to 48 kHz mono when needed.
 #' 3. [analyze_birdnet()]: detections in `AudioMoth_<ID>_detections.csv`.
 #' 4. [export_observation()]: `AudioMoth_<ID>_observation.csv` (only the
@@ -34,20 +36,25 @@
 #' @param validation Create the validation page ([create_validation()]).
 #' @param report Create a PDF report with [create_report()] (needs Quarto).
 #' @param ... Other arguments for [analyze_birdnet()] (e.g. `language`,
-#'   `min_confidence`, `location_threshold`).
+#'   `min_confidence`, `location_threshold`, `species_list`).
 #' @return Invisibly, the `audiomoth` object with its detections.
 #' @examples
 #' \dontrun{
 #' am <- process_audiomoth(
 #'   coordinates = "41.123456, -3.123456",    # copied from Google Earth
-#'   output = "~/AudiomothR_results/site_01",
+#'   output = "~/AudiomothR_results/box_01",
+#'   copy_to = TRUE,                          # copy the card first and work on the copy
 #'   example_species = "auto",
 #'   validation = TRUE
 #' )
+#'
+#' # With an own list of species instead of the location filter
+#' am <- process_audiomoth(output = "~/AudiomothR_results/box_01", copy_to = "/media/backup",
+#'                         species_list = "~/species_list.txt")
 #' }
 #' @export
 process_audiomoth <- function(folder = choose_folder(), coordinates = NULL, site = NULL, precision_m = NULL,
-                              time_zone = "Europe/Madrid", output = NULL, example_species = NULL,
+                              time_zone = "Europe/Madrid", output = NULL, copy_to = NULL, example_species = NULL,
                               n_examples = 3, example_confidence = 0.85, video = TRUE,
                               video_style = c("cursor", "scroll"), export = NULL, validation = FALSE,
                               report = FALSE, ...) {
@@ -64,9 +71,13 @@ process_audiomoth <- function(folder = choose_folder(), coordinates = NULL, site
     abort("Unknown argument{?s} for {.fn analyze_birdnet}: {.arg {unknown %||% '(unnamed)'}}.")
   }
   if (report) quarto_path()
+  # A wrong species list is better found before the card is copied
+  if (!is.null(birdnet_args$species_list)) {
+    birdnet_args$species_list <- read_species_list(birdnet_args$species_list)
+  }
 
   am <- read_audiomoth(folder, coordinates = coordinates, site = site, precision_m = precision_m,
-                       time_zone = time_zone, output = output)
+                       time_zone = time_zone, output = output, copy_to = copy_to)
   am <- prepare_audio(am)
   am <- do.call(analyze_birdnet, c(list(am), birdnet_args))
   if (isTRUE(export) || (is.null(export) && !file.exists(output_file(am, "observation")))) {

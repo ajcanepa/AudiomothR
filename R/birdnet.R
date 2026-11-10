@@ -145,10 +145,38 @@ convert_recording <- function(src, dest, triggered = FALSE) {
 
 #' Analyses the recordings with BirdNET
 #'
-#' Uses the BirdNET v2.4 model through the birdnetR package. With
-#' `location_filter`, only the species expected at the location of the
-#' recorder in the week of each recording are considered (BirdNET metadata
-#' model); without it, BirdNET often proposes species from other continents.
+#' Uses the BirdNET v2.4 model through the birdnetR package.
+#'
+#' **Which species BirdNET looks for.** BirdNET v2.4 knows about 6,500
+#' classes, most of them birds from all over the world. Without a filter it
+#' often proposes species from other continents, so by default only the
+#' species expected at the site are considered:
+#' - **Location filter** (default, `location_filter = TRUE`): the metadata
+#'   (geographic) model of BirdNET, trained with the eBird checklists, gives
+#'   for each species a probability of occurrence at the location of the
+#'   deployment and in the week of the year of each recording (48 weeks, four
+#'   per month). Only the species with a probability of at least
+#'   `location_threshold` (0.03, the value of BirdNET) are analysed; the
+#'   others are never proposed. It works well for common species, but in
+#'   little visited areas, or for species that are seldom reported to eBird
+#'   (nocturnal, secretive or scarce species: owls, Stone-curlew,
+#'   sandgrouse...), the probability may be underestimated and the species
+#'   left out. In such cases lower `location_threshold` (e.g. 0.01), use a
+#'   `species_list` or turn the filter off.
+#' - **Own list** (`species_list`): only the species of the list are
+#'   analysed, wherever the recorder is (the location filter is then not
+#'   applied). It may be a vector of scientific names, a file such as the
+#'   species list of BirdNET-Analyzer or a CSV file, or a table built from
+#'   the observations around the site with [gbif_species_list()]; see
+#'   [read_species_list()] for the accepted formats.
+#' - **No filter** (`location_filter = FALSE`): all the classes of BirdNET.
+#'   Rare species are not lost, but there are more mistakes with species from
+#'   elsewhere: check the records by ear ([create_validation()]).
+#'
+#' In every case the probability of occurrence of the metadata model is kept
+#' in the column `location_prob` of the detections, and the validation page
+#' shows first the least plausible records (low confidence and low
+#' `location_prob`).
 #'
 #' **Cache.** Recordings already analysed with the same parameters are not
 #' analysed again: an interrupted analysis continues where it stopped. The
@@ -160,8 +188,8 @@ convert_recording <- function(src, dest, triggered = FALSE) {
 #' **Doubts.** BirdNET analyses the audio in 3 s windows. A detection has
 #' "no doubts" (`no_doubts = TRUE`) when BirdNET proposed no other species in
 #' the same window with a confidence of at least 0.1 (only species that pass
-#' the location filter count; classes such as "Engine" or "Human vocal" do
-#' not).
+#' the location filter, or that are in the `species_list`, count; classes
+#' such as "Engine" or "Human vocal" do not).
 #'
 #' **Overlap.** With `overlap > 0` consecutive windows overlap and the same
 #' song is detected in several of them. The column `event` groups the
@@ -183,9 +211,16 @@ convert_recording <- function(src, dest, triggered = FALSE) {
 #' @param version Version of the BirdNET model (see
 #'   [birdnetR::birdnet_model_tflite()]). It is stored in the column `model`
 #'   and quoted by [export_observation()] in the notes.
-#' @param location_filter Filter the species by location and week.
+#' @param location_filter Filter the species by location and week (see
+#'   "Which species BirdNET looks for"). Not applied when `species_list` is
+#'   given.
 #' @param location_threshold Minimum probability of occurrence (metadata
-#'   model) for a species to pass the filter.
+#'   model, 0 to 1) for a species to pass the location filter.
+#' @param species_list Own list of the species to look for, instead of the
+#'   location filter: a vector of scientific names, the path of a `.txt` file
+#'   (e.g. the species list of BirdNET-Analyzer) or of a `.csv` file, or a
+#'   data frame such as the result of [gbif_species_list()]. See
+#'   [read_species_list()]. `NULL` (default): no list.
 #' @param overlap Overlap between 3 s windows (seconds, 0 to 2.9).
 #' @param sensitivity BirdNET sensitivity (0.5 to 1.5).
 #' @param threads Computing threads (by default, all but one).
@@ -200,11 +235,17 @@ convert_recording <- function(src, dest, triggered = FALSE) {
 #' card <- system.file("extdata", "example", "card", package = "AudiomothR")
 #' am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
 #' am <- analyze_birdnet(am)
+#'
+#' # Only the species of an own list (e.g. that of BirdNET-Analyzer)
+#' am <- analyze_birdnet(am, species_list = "~/species_list.txt")
+#'
+#' # The species observed within 30 km in GBIF (eBird, Observation.org, iNaturalist)
+#' am <- analyze_birdnet(am, species_list = gbif_species_list(am, radius_km = 30))
 #' }
 #' @export
 analyze_birdnet <- function(am, min_confidence = 0.1, language = default_language(), version = "v2.4",
-                            location_filter = TRUE, location_threshold = 0.03, overlap = 0,
-                            sensitivity = 1, threads = NULL, reanalyze = FALSE,
+                            location_filter = TRUE, location_threshold = 0.03, species_list = NULL,
+                            overlap = 0, sensitivity = 1, threads = NULL, reanalyze = FALSE,
                             stop_on_error = FALSE) {
   # Every argument is checked before anything is loaded or written
   check_audiomoth(am)
@@ -220,6 +261,12 @@ analyze_birdnet <- function(am, min_confidence = 0.1, language = default_languag
   check_flag(reanalyze, "reanalyze")
   check_flag(stop_on_error, "stop_on_error")
   threads <- threads %||% max(1L, parallel_cores() - 1L)
+  species <- NULL
+  if (!is.null(species_list)) {
+    species <- read_species_list(species_list)
+    if (nrow(species) == 0) abort("No name of {.arg species_list} is a species of BirdNET v2.4.")
+    location_filter <- FALSE
+  }
 
   am <- set_birdnet_paths(am)
   g <- am$recordings
@@ -231,6 +278,11 @@ analyze_birdnet <- function(am, min_confidence = 0.1, language = default_languag
                  location_filter = location_filter,
                  location_threshold = if (location_filter) round(location_threshold, 4),
                  overlap = round(overlap, 3), sensitivity = round(sensitivity, 3))
+  # An own list is part of the parameters: another list is another analysis
+  if (!is.null(species)) {
+    params$species_list <- species_list_key(species$scientific_name)
+    params$species_list_n <- nrow(species)
+  }
   cache <- cache_folder(am, params)
   if (reanalyze) unlink(cache, recursive = TRUE)
   older <- setdiff(list.dirs(file.path(am$output, "birdnet"), recursive = FALSE), cache)
@@ -279,6 +331,7 @@ analyze_birdnet <- function(am, min_confidence = 0.1, language = default_languag
     dir.create(cache, recursive = TRUE, showWarnings = FALSE)
     saveRDS(params, file.path(cache, "parameters.rds"))
     write_metadata(cache, params, language)
+    if (!is.null(species)) write_csv(species, file.path(cache, "species_list.csv"))
 
     # Probability of occurrence of each species at the site and week: used as
     # filter and, for every detection, to tell the unusual ones (validation)
@@ -313,6 +366,11 @@ analyze_birdnet <- function(am, min_confidence = 0.1, language = default_languag
       }
       inform("Location filter: {round(mean(lengths(filters)))} expected species per site and week on average.")
     }
+    own <- NULL
+    if (!is.null(species)) {
+      own <- labels$label[labels$scientific_name %in% species$scientific_name]
+      inform("Species list: {length(own)} species (the location filter is not applied).")
+    }
 
     bar <- cli::cli_progress_bar(name = "Analysing with BirdNET", total = length(pending))
     for (k in pending) {
@@ -320,7 +378,7 @@ analyze_birdnet <- function(am, min_confidence = 0.1, language = default_languag
         if (g$birdnet_path[k] != g$path[k] && !converted_ok(g, k)) {
           convert_recording(g$path[k], g$birdnet_path[k], g$triggered[k])
         }
-        filter <- if (location_filter) filters[[paste(place[k], birdnet_week(g$local_date[k]))]]
+        filter <- if (location_filter) filters[[paste(place[k], birdnet_week(g$local_date[k]))]] else own
         pred <- quiet_python(bn_predict(model, g$birdnet_path[k], cache_threshold, overlap,
                                         sensitivity, filter))
         if (is.null(pred) || nrow(pred) == 0) {
@@ -353,7 +411,7 @@ analyze_birdnet <- function(am, min_confidence = 0.1, language = default_languag
   }
   am$recordings <- g
   am$analysis <- list(parameters = params, language = language, cache = cache,
-                      min_confidence = min_confidence)
+                      min_confidence = min_confidence, species_list = species)
   write_csv(g, output_file(am, "recordings"))
   file <- output_file(am, "detections")
   write_csv(am$detections, file)
@@ -392,6 +450,15 @@ cache_folder <- function(am, params) {
   writeLines(paste(deparse(params), collapse = ""), tmp)
   key <- substr(unname(tools::md5sum(tmp)), 1, 8)
   file.path(am$output, "birdnet", paste0(am$config$device_id, "_", key))
+}
+
+#' Short key of a species list (8 characters of the MD5 of its sorted names)
+#' @noRd
+species_list_key <- function(names) {
+  tmp <- tempfile()
+  on.exit(unlink(tmp))
+  writeLines(sort(unique(names)), tmp)
+  substr(unname(tools::md5sum(tmp)), 1, 8)
 }
 
 result_file <- function(cache, g, place) {

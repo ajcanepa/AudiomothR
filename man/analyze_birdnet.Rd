@@ -11,6 +11,7 @@ analyze_birdnet(
   version = "v2.4",
   location_filter = TRUE,
   location_threshold = 0.03,
+  species_list = NULL,
   overlap = 0,
   sensitivity = 1,
   threads = NULL,
@@ -34,10 +35,18 @@ accepted: its label file in BirdNET v2.4 is wrong.}
 \code{\link[birdnetR:birdnet_model_tflite]{birdnetR::birdnet_model_tflite()}}). It is stored in the column \code{model}
 and quoted by \code{\link[=export_observation]{export_observation()}} in the notes.}
 
-\item{location_filter}{Filter the species by location and week.}
+\item{location_filter}{Filter the species by location and week (see
+"Which species BirdNET looks for"). Not applied when \code{species_list} is
+given.}
 
 \item{location_threshold}{Minimum probability of occurrence (metadata
-model) for a species to pass the filter.}
+model, 0 to 1) for a species to pass the location filter.}
+
+\item{species_list}{Own list of the species to look for, instead of the
+location filter: a vector of scientific names, the path of a \code{.txt} file
+(e.g. the species list of BirdNET-Analyzer) or of a \code{.csv} file, or a
+data frame such as the result of \code{\link[=gbif_species_list]{gbif_species_list()}}. See
+\code{\link[=read_species_list]{read_species_list()}}. \code{NULL} (default): no list.}
 
 \item{overlap}{Overlap between 3 s windows (seconds, 0 to 2.9).}
 
@@ -55,12 +64,42 @@ warns, and the recordings are listed in the column \code{analysis}.}
 \code{am} with \code{am$detections} (data frame).
 }
 \description{
-Uses the BirdNET v2.4 model through the birdnetR package. With
-\code{location_filter}, only the species expected at the location of the
-recorder in the week of each recording are considered (BirdNET metadata
-model); without it, BirdNET often proposes species from other continents.
+Uses the BirdNET v2.4 model through the birdnetR package.
 }
 \details{
+\strong{Which species BirdNET looks for.} BirdNET v2.4 knows about 6,500
+classes, most of them birds from all over the world. Without a filter it
+often proposes species from other continents, so by default only the
+species expected at the site are considered:
+\itemize{
+\item \strong{Location filter} (default, \code{location_filter = TRUE}): the metadata
+(geographic) model of BirdNET, trained with the eBird checklists, gives
+for each species a probability of occurrence at the location of the
+deployment and in the week of the year of each recording (48 weeks, four
+per month). Only the species with a probability of at least
+\code{location_threshold} (0.03, the value of BirdNET) are analysed; the
+others are never proposed. It works well for common species, but in
+little visited areas, or for species that are seldom reported to eBird
+(nocturnal, secretive or scarce species: owls, Stone-curlew,
+sandgrouse...), the probability may be underestimated and the species
+left out. In such cases lower \code{location_threshold} (e.g. 0.01), use a
+\code{species_list} or turn the filter off.
+\item \strong{Own list} (\code{species_list}): only the species of the list are
+analysed, wherever the recorder is (the location filter is then not
+applied). It may be a vector of scientific names, a file such as the
+species list of BirdNET-Analyzer or a CSV file, or a table built from
+the observations around the site with \code{\link[=gbif_species_list]{gbif_species_list()}}; see
+\code{\link[=read_species_list]{read_species_list()}} for the accepted formats.
+\item \strong{No filter} (\code{location_filter = FALSE}): all the classes of BirdNET.
+Rare species are not lost, but there are more mistakes with species from
+elsewhere: check the records by ear (\code{\link[=create_validation]{create_validation()}}).
+}
+
+In every case the probability of occurrence of the metadata model is kept
+in the column \code{location_prob} of the detections, and the validation page
+shows first the least plausible records (low confidence and low
+\code{location_prob}).
+
 \strong{Cache.} Recordings already analysed with the same parameters are not
 analysed again: an interrupted analysis continues where it stopped. The
 cache is in \verb{<output>/birdnet/}, in one folder per combination of
@@ -71,8 +110,8 @@ analysis.
 \strong{Doubts.} BirdNET analyses the audio in 3 s windows. A detection has
 "no doubts" (\code{no_doubts = TRUE}) when BirdNET proposed no other species in
 the same window with a confidence of at least 0.1 (only species that pass
-the location filter count; classes such as "Engine" or "Human vocal" do
-not).
+the location filter, or that are in the \code{species_list}, count; classes
+such as "Engine" or "Human vocal" do not).
 
 \strong{Overlap.} With \code{overlap > 0} consecutive windows overlap and the same
 song is detected in several of them. The column \code{event} groups the
@@ -89,5 +128,11 @@ At the end, \verb{AudioMoth_<ID>_detections.csv} is saved (see
 card <- system.file("extdata", "example", "card", package = "AudiomothR")
 am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
 am <- analyze_birdnet(am)
+
+# Only the species of an own list (e.g. that of BirdNET-Analyzer)
+am <- analyze_birdnet(am, species_list = "~/species_list.txt")
+
+# The species observed within 30 km in GBIF (eBird, Observation.org, iNaturalist)
+am <- analyze_birdnet(am, species_list = gbif_species_list(am, radius_km = 30))
 }
 }

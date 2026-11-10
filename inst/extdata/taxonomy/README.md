@@ -26,6 +26,14 @@ lumps and genera of its own, and its import only accepts its own names.
   diomedea* is *Calonectris borealis* in the Atlantic, *Fringilla coelebs* is
   *Fringilla canariensis* in the Canary Islands). Written by hand.
 - `ioc_15.2_birds.csv.gz`: IOC 15.2 species with English and Spanish names.
+- `birdnet_v2.4_to_gbif.csv.gz`: the species of the GBIF Backbone Taxonomy
+  (`gbif_species`, `gbif_key`) of every bird of BirdNET v2.4, found with the
+  name matching service of GBIF (`gbif_match`: `EXACT`, `FUZZY`...; empty when
+  GBIF only knows the genus). `gbif_species_list()` uses it to translate the
+  species observed around a site into BirdNET names, and
+  `read_species_list()` to accept GBIF names. Built with
+  `data-raw/build_gbif_keys.R`; rebuild it when GBIF changes its backbone
+  taxonomy.
 
 These tables are built with `data-raw/build_taxonomy.R` (in the source
 repository) from the BirdNET v2.4 labels, the file

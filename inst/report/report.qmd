@@ -146,14 +146,19 @@ paragraph(
   "). BirdNET analyses the audio in 3 s windows and returns, for each one, the proposed species and their confidence. ",
   if (any(recorders$location_filter %in% TRUE))
     "Only the species expected at the location and the week of the year of each recording were considered (BirdNET metadata model). " else "",
+  if (any(!is.na(recorders$species_list_n)))
+    "An own list of species was used instead of the location filter (only the species of the list were considered). " else "",
   "A detection has *no doubts* when BirdNET proposed no other species in the same window. ",
   "Times are local time (", paste(unique(recorders$time_zone), collapse = ", "), ").")
 
+if (is.null(recorders$species_list_n)) recorders$species_list_n <- NA
 kable_md(data.frame(
   Recorder = esc(recorders$recorder), Model = recorders$model %|% "–",
-  `Location filter` = ifelse(recorders$location_filter %in% TRUE,
-                             paste0("Yes (≥ ", num(recorders$location_threshold), ")"),
-                             ifelse(is.na(recorders$location_filter), "–", "No")),
+  `Species filter` = ifelse(!is.na(recorders$species_list_n),
+                            paste0("Own list (", recorders$species_list_n, " species)"),
+                            ifelse(recorders$location_filter %in% TRUE,
+                                   paste0("Location (≥ ", num(recorders$location_threshold), ")"),
+                                   ifelse(is.na(recorders$location_filter), "–", "None"))),
   Sensitivity = num(recorders$sensitivity, 1), `Overlap (s)` = num(recorders$overlap, 1),
   `Analysis date` = substr(recorders$analysis_date %|% "–", 1, 10), check.names = FALSE))
 

@@ -7,11 +7,11 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it using these metadata."
 title: "AudiomothR: Acoustic Processing of AudioMoth Recordings with BirdNET"
 type: software
-version: 0.3.0
+version: 0.4.0
 # DOI of all versions (concept DOI): it always resolves to the latest one.
 # Zenodo gives each release its own DOI.
 doi: 10.5281/zenodo.23646408
-date-released: 2026-10-28
+date-released: 2026-11-10
 license: GPL-3.0-or-later
 repository-code: "https://github.com/ajcanepa/AudiomothR"
 authors:

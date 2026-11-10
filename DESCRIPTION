@@ -1,6 +1,6 @@
 Package: AudiomothR
 Title: Acoustic Processing of 'AudioMoth' Recordings with 'BirdNET'
-Version: 0.3.0
+Version: 0.4.0
 Authors@R: c(
     person("Antonio", "Canepa-Oneto", role = c("aut", "cre"),
            email = "ajcanepa@gmail.com"),
@@ -12,8 +12,11 @@ Authors@R: c(
   )
 Description: Reads the cards of 'AudioMoth' recorders (Hill et al. 2018)
     <doi:10.1111/2041-210X.12955> ('CONFIG.TXT' file and daily folders),
-    prepares the audio and analyses it with 'BirdNET' (Kahl et al. 2021)
-    <doi:10.1016/j.ecoinf.2021.101236> through 'birdnetR'. Saves the
+    optionally copies them to the disk, prepares the audio and analyses it
+    with 'BirdNET' (Kahl et al. 2021) <doi:10.1016/j.ecoinf.2021.101236>
+    through 'birdnetR', with the species expected at the site or an own
+    list of species (which can be built from the observations published in
+    'GBIF' around the recorder). Saves the
     detections as CSV files, extracts high-confidence examples of the chosen
     species with their audio and a video of the spectrogram, creates a web
     page to validate the records by ear, and converts the detections into
@@ -35,6 +38,7 @@ Imports:
     cli (>= 3.0.0),
     grDevices,
     graphics,
+    jsonlite,
     parallel,
     processx (>= 3.5.0),
     reticulate (>= 1.41),

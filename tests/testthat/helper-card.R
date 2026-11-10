@@ -5,6 +5,9 @@
 
 device <- "FACADE0012345678"
 
+# The tests never ask GBIF (the test of the synonyms replaces it with a mock)
+options(AudiomothR.gbif_synonyms = FALSE)
+
 config_txt <- function(location = TRUE, rate = 48000, device_time = TRUE) {
   c(
     sprintf("Device ID                       : %s", device),
@@ -150,9 +153,16 @@ with_mock_birdnet <- function(code, fail = NULL, calls = new.env(), scores = 0.5
     },
     bn_predict = function(model, path, min_confidence, overlap, sensitivity, filter) {
       calls$n <- calls$n + 1
+      calls$filter <- filter
       if (!is.null(fail) && grepl(fail, path)) stop("cannot read the audio")
       key <- sub("^[0-9A-F]{16}_", "", tools::file_path_sans_ext(basename(path)))
       p <- mock_predictions[mock_predictions$file == key & mock_predictions$confidence >= min_confidence, -1]
+      # Only the species of the filter, when there is one (the non-species
+      # classes are kept, so that the tests can check how they are handled)
+      if (!is.null(filter)) {
+        keep <- p$scientific_name %in% c(sub("_.*$", "", filter), AudiomothR:::non_species)
+        p <- p[keep, , drop = FALSE]
+      }
       p$common_name <- p$scientific_name
       p
     },

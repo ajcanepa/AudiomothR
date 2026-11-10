@@ -1,3 +1,51 @@
+# AudiomothR 0.4.0
+
+## New features
+
+* **Copy of the card** (`copy_to` in `read_audiomoth()` and
+  `process_audiomoth()`): the card is first copied to the disk and everything
+  is done with the copy, so the card can be formatted for the next
+  deployment, the recordings are kept as a backup, and the examples, the
+  validation page and new analyses keep working without the card.
+  `copy_to = TRUE` copies it into `<output>/recordings/<first date>-<last
+  date>/`; a folder copies it into `<folder>/AudioMoth_<ID>/<first
+  date>-<last date>/`. The copy keeps the structure and the dates of the
+  card, checks the size of each file and continues where it stopped. The
+  original folder is kept in the new column `card_folder` of
+  `AudioMoth_<ID>_deployments.csv`.
+* **Own list of species** (`species_list` in `analyze_birdnet()`, also through
+  `process_audiomoth()`): only the species of the list are analysed, instead
+  of those expected by the location filter. The list may be a vector of
+  scientific names, the species list of BirdNET-Analyzer (`.txt`), a CSV file
+  with a column of scientific names or a data frame; names of BirdNET, the
+  IOC World Bird List, Observation.org or GBIF are accepted.
+  `read_species_list()` reads and checks a list, and the package includes a
+  template (`inst/extdata/example/species_list.csv`). Each list is a
+  different analysis in the cache, which keeps the list used
+  (`species_list.csv`). The report states which filter was used.
+* `gbif_species_list()`: the bird species observed within a radius of the
+  recorder, in the months of its recordings, in the datasets of eBird,
+  Observation.org and iNaturalist published by GBIF (public API, without an
+  account or a key), translated into BirdNET names and ready to be used as
+  `species_list`. Useful for species that the location filter of BirdNET
+  leaves out (nocturnal, secretive or scarce species, little visited areas).
+  A new table (`inst/extdata/taxonomy/birdnet_v2.4_to_gbif.csv.gz`, built
+  with `data-raw/build_gbif_keys.R`) links each bird of BirdNET v2.4 to its
+  species in the GBIF Backbone Taxonomy.
+
+## Documentation
+
+* The help of `analyze_birdnet()`, the vignette and the README explain how the
+  location filter works (BirdNET metadata model trained with eBird
+  checklists, probability of occurrence per site and week, threshold 0.03),
+  when it may leave out species that are present, and the alternatives
+  (lower threshold, own list, list from GBIF, no filter).
+* The vignette and the README recommend copying the card before working.
+
+## Other changes
+
+* `jsonlite` is a new dependency (already installed with `reticulate`).
+
 # AudiomothR 0.3.0
 
 ## Breaking changes

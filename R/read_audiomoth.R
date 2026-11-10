@@ -55,6 +55,24 @@ choose_folder <- function(start = getwd()) {
 #' as `AudioMoth_<ID>_recordings.csv` in the `output` folder. The audio is not
 #' loaded.
 #'
+#' **Copy of the card (recommended).** With `copy_to`, the card is first
+#' copied to the disk and everything is done with the copy: the card can be
+#' formatted for the next deployment as soon as the copy is finished, the
+#' recordings are kept as a backup, and the steps that go back to the audio
+#' ([extract_examples()], [create_validation()], a new analysis) keep working
+#' after the card is gone. Without it, the card is read where it is (it is
+#' never modified), and those steps need the card connected at the same
+#' path. `copy_to = TRUE` copies the card into the results folder
+#' (`<output>/recordings/<first date>-<last date>/`); a folder (e.g. on an
+#' external disk) copies it into `<copy_to>/AudioMoth_<ID>/<first date>-<last
+#' date>/`, so one backup folder can keep the cards of every box. The copy
+#' keeps the structure of the card (`CONFIG.TXT` and daily folders) and the
+#' dates of the files; each file is checked by its size, and files already
+#' copied are skipped, so an interrupted copy continues where it stopped.
+#' The original folder is kept in the column `card_folder` of the
+#' deployments. Reading the copy again later (with `folder`) needs no
+#' `copy_to`.
+#'
 #' **Location of the deployment.** Taken from `coordinates` when given (the
 #' recommended way, since the box may have moved); for a card read before,
 #' the location it was given then; otherwise from the `Location` field of
@@ -102,8 +120,12 @@ choose_folder <- function(start = getwd()) {
 #'   accepted and translated into the fixed zone `"Etc/GMT-2"`.
 #' @param output Results folder (it is created if needed). By default it is
 #'   asked for with [choose_output()].
-#' @return An object of class `audiomoth`: a list with `folder`, `config`,
-#'   `location`, `site` and `deployment` (of this card), `time_zone`,
+#' @param copy_to Copy the card to the disk and work with the copy (see "Copy
+#'   of the card"): `TRUE` (into the results folder) or the path of a backup
+#'   folder. `NULL` (default): no copy, the card is read where it is.
+#' @return An object of class `audiomoth`: a list with `folder` (the copy when
+#'   `copy_to` is used), `card_folder` (the original card, or `NULL`),
+#'   `config`, `location`, `site` and `deployment` (of this card), `time_zone`,
 #'   `output`, `recordings` (data frame with one row per WAV file of all the
 #'   cards of the box, with the `deployment`, `site`, `lat`, `lon` and
 #'   `precision_m` of its deployment) and `deployments` (one row per card).
@@ -111,9 +133,15 @@ choose_folder <- function(start = getwd()) {
 #' card <- system.file("extdata", "example", "card", package = "AudiomothR")
 #' am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
 #' head(am$recordings[, c("file", "start_local", "duration_s", "valid", "problem")])
+#'
+#' # Copying the card first into the results folder (recommended with real cards)
+#' out <- tempfile()
+#' am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = out, copy_to = TRUE)
+#' am$folder   # the copy: <output>/recordings/20261007-20261015
 #' @export
 read_audiomoth <- function(folder = choose_folder(), coordinates = NULL, site = NULL,
-                           precision_m = NULL, time_zone = "Europe/Madrid", output = NULL) {
+                           precision_m = NULL, time_zone = "Europe/Madrid", output = NULL,
+                           copy_to = NULL) {
   if (!is.character(folder) || length(folder) != 1 || is.na(folder)) abort("{.arg folder} must be the path of a folder.")
   folder <- normalizePath(folder, mustWork = FALSE)
   if (!dir.exists(folder)) abort("Folder {.file {folder}} does not exist.")
@@ -124,6 +152,16 @@ read_audiomoth <- function(folder = choose_folder(), coordinates = NULL, site = 
   config <- if (length(config_file)) read_config(config_file[1]) else NULL
   output <- resolve_output(output, folder, config)
   check_writable(output)
+  card_folder <- NULL
+  if (!is.null(copy_to) && !isFALSE(copy_to)) {
+    copy <- copy_card(folder, copy_to, output, config)
+    if (copy != folder) {
+      card_folder <- folder
+      folder <- copy
+      config_file <- list.files(folder, pattern = "^CONFIG\\.TXT$", ignore.case = TRUE, full.names = TRUE)
+      config <- if (length(config_file)) read_config(config_file[1]) else NULL
+    }
+  }
   recordings <- inventory_wav(folder, config, time_zone, output)
   if (is.null(config)) {
     if (is.null(coordinates) && !interactive()) {
@@ -182,7 +220,8 @@ read_audiomoth <- function(folder = choose_folder(), coordinates = NULL, site = 
     last_date = if (length(dates)) max(dates) else NA_character_, recordings = nrow(recordings),
     site = site, lat = location$lat, lon = location$lon, precision_m = location$precision_m,
     location_source = location$source, firmware = config$firmware, sample_rate = config$sample_rate,
-    gain = config$gain, read = format(Sys.time(), "%Y-%m-%d %H:%M:%S"), stringsAsFactors = FALSE)
+    gain = config$gain, read = format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+    card_folder = card_folder %||% same$card_folder %||% NA_character_, stringsAsFactors = FALSE)
 
   # The box accumulates its cards: earlier deployments are kept
   all <- recordings
@@ -195,13 +234,20 @@ read_audiomoth <- function(folder = choose_folder(), coordinates = NULL, site = 
     all$id <- seq_len(nrow(all))
     rownames(all) <- NULL
   }
-  deployments <- rbind(previous$deployments[previous$deployments$deployment != id, names(deployment), drop = FALSE],
-                       deployment)
+  before <- previous$deployments
+  if (!is.null(before)) {
+    before <- before[before$deployment != id, , drop = FALSE]
+    # Deployments read by an older version lack the newer columns
+    for (col in setdiff(names(deployment), names(before))) before[[col]] <- rep(NA, nrow(before))
+    before <- before[, names(deployment), drop = FALSE]
+  }
+  deployments <- rbind(before, deployment)
   deployments <- deployments[order(deployments$first_date), , drop = FALSE]
   rownames(deployments) <- NULL
 
   am <- structure(list(
     folder = folder,
+    card_folder = card_folder,
     config = config,
     location = location,
     site = site,
@@ -332,6 +378,96 @@ check_writable <- function(output) {
   }
 }
 
+#' Copies a card to the disk and returns the folder of the copy
+#'
+#' Destination: `<output>/recordings/<range>` (`copy_to = TRUE`) or
+#' `<copy_to>/AudioMoth_<ID>/<range>`, where `<range>` is
+#' `<first date>-<last date>` of the WAV file names. Every file of the card
+#' is copied (except the hidden ones and the system folders), keeping the
+#' structure and the dates; files already in the copy with the same size are
+#' skipped. Each file is copied to a temporary name and renamed when
+#' complete, and the sizes are checked at the end.
+#' @noRd
+copy_card <- function(folder, copy_to, output, config) {
+  if (isTRUE(copy_to)) {
+    base <- file.path(output, "recordings")
+  } else if (is.character(copy_to) && length(copy_to) == 1 && !is.na(copy_to) && nzchar(copy_to)) {
+    base <- NULL
+  } else {
+    abort("{.arg copy_to} must be {.code TRUE} (into the results folder) or the path of a folder.")
+  }
+  sep <- "[/\\\\]"
+  files <- list.files(folder, recursive = TRUE, all.files = FALSE, no.. = TRUE)
+  system <- grepl("^(System Volume Information|\\$RECYCLE\\.BIN|\\.Trashes|\\.Spotlight-V100|\\.fseventsd)", files) |
+    grepl(paste0("(^|", sep, ")\\."), files)
+  files <- files[!system]
+  # The results folder may be inside the card (a copy of the card read before)
+  full <- normalizePath(file.path(folder, files), mustWork = FALSE)
+  inside <- startsWith(full, paste0(output, "/")) | startsWith(full, paste0(output, .Platform$file.sep))
+  files <- files[!inside]
+  wav <- files[grepl("\\.wav$", files, ignore.case = TRUE)]
+  if (length(wav) == 0) abort("No WAV files were found in {.file {folder}}: nothing to copy.")
+
+  device <- config$device_id %||% parse_audiomoth_name(basename(wav[1]))$prefix_id %|NA|% "unknown"
+  dates <- substr(parse_audiomoth_name(basename(wav))$date_text, 1, 8)
+  dates <- dates[!is.na(dates) & grepl("^[0-9]{8}$", dates)]
+  if (length(dates) == 0) {
+    day <- basename(dirname(wav))
+    dates <- day[grepl("^[0-9]{8}$", day)]
+  }
+  range <- if (length(dates)) paste(min(dates), max(dates), sep = "-") else basename(folder)
+  base <- base %||% file.path(normalizePath(path.expand(copy_to), mustWork = FALSE), paste0("AudioMoth_", device))
+  dest <- normalizePath(file.path(base, range), mustWork = FALSE)
+
+  if (identical(dest, folder)) {
+    inform("i" = "{.file {folder}} is already the copy of the card.")
+    return(folder)
+  }
+  if (startsWith(dest, paste0(folder, "/")) || startsWith(dest, paste0(folder, .Platform$file.sep))) {
+    abort("The copy cannot be made inside the card ({.file {dest}}).",
+          "i" = "Give a {.arg copy_to} folder (or an {.arg output} folder) outside the card.")
+  }
+  dir.create(dest, recursive = TRUE, showWarnings = FALSE)
+  check_writable(dest)
+
+  src <- file.path(folder, files)
+  target <- file.path(dest, files)
+  size <- file.size(src)
+  same_size <- function() !is.na(file.size(target)) & file.size(target) == size
+  done <- same_size()
+  todo <- which(!done)
+  if (length(todo) == 0) {
+    inform(c("v" = "The copy of the card in {.file {dest}} is already complete ({length(files)} files)."))
+    return(dest)
+  }
+  gb <- sum(size[todo], na.rm = TRUE) / 1e9
+  inform("Copying the card to {.file {dest}}: {length(todo)} file{?s} ({format_size(gb)}).")
+  bar <- cli::cli_progress_bar(name = "Copying the card", total = length(todo))
+  for (k in todo) {
+    dir.create(dirname(target[k]), recursive = TRUE, showWarnings = FALSE)
+    tmp <- paste0(target[k], ".part")
+    ok <- suppressWarnings(file.copy(src[k], tmp, overwrite = TRUE, copy.date = TRUE)) &&
+      isTRUE(file.size(tmp) == size[k]) && file.rename(tmp, target[k])
+    if (!ok) {
+      unlink(tmp)
+      abort("Cannot copy {.file {src[k]}} to {.file {target[k]}} (is the disk full?).",
+            "i" = "Free some space or give another {.arg copy_to}; running it again continues the copy.")
+    }
+    cli::cli_progress_update(id = bar)
+  }
+  cli::cli_progress_done(id = bar)
+  bad <- files[!same_size()]
+  if (length(bad)) abort("The copy is not complete: {length(bad)} file{?s} differ from the card, e.g. {.file {bad[1]}}.")
+  inform(c("v" = "Card copied ({length(files)} files): the analysis uses the copy, and the card can be formatted once you have checked it."))
+  dest
+}
+
+#' Size in GB or MB, for messages
+#' @noRd
+format_size <- function(gb) {
+  if (gb >= 1) sprintf("%.1f GB", gb) else sprintf("%.0f MB", 1000 * gb)
+}
+
 #' Chooses the location: argument > CONFIG.TXT > console
 #' @noRd
 resolve_location <- function(coordinates, config, same = NULL, last = NULL) {
@@ -412,7 +548,10 @@ check_time_zone_location <- function(time_zone, location) {
 inventory_wav <- function(folder, config, time_zone, output) {
   paths <- list.files(folder, pattern = "\\.wav$", ignore.case = TRUE, full.names = TRUE, recursive = TRUE)
   paths <- normalizePath(paths, mustWork = FALSE)
-  paths <- paths[!startsWith(paths, paste0(output, .Platform$file.sep)) & !startsWith(paths, paste0(output, "/"))]
+  # A results folder inside the card is left out (but not when the folder read
+  # is itself inside the results folder: the copy made with copy_to = TRUE)
+  under <- function(x, dir) startsWith(x, paste0(dir, .Platform$file.sep)) | startsWith(x, paste0(dir, "/"))
+  if (!under(folder, output)) paths <- paths[!under(paths, output)]
   relative <- substring(paths, nchar(folder) + 2)
   in_day <- grepl("^[0-9]{8}[/\\\\][^/\\\\]+$", relative) | !grepl("[/\\\\]", relative)
   if (any(!in_day)) {
@@ -680,7 +819,8 @@ print.audiomoth <- function(x, ...) {
   u <- x$location
   cli::cli_h1("AudioMoth {x$config$device_id}")
   cli::cli_ul(c(
-    "Folder: {.file {x$folder}}",
+    if (!is.null(x$card_folder)) "Card: {.file {x$card_folder}} (copied)",
+    if (!is.null(x$card_folder)) "Copy of the card (used from now on): {.file {x$folder}}" else "Folder: {.file {x$folder}}",
     "Site of this card: {x$site} ({u$lat}, {u$lon}; \u00b1{u$precision_m} m; source: {u$source})",
     if (!is.null(x$deployments) && nrow(x$deployments) > 1) "Deployments of this box: {nrow(x$deployments)} ({paste(unique(x$deployments$site), collapse = ', ')})",
     "Map: {.url {map_link(u$lat, u$lon)}}",

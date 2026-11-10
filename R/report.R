@@ -223,6 +223,7 @@ report_data <- function(recorders, output, min_confidence) {
       cache_threshold = params$cache_threshold %||% NA,
       location_filter = params$location_filter %||% NA,
       location_threshold = params$location_threshold %||% NA,
+      species_list_n = params$species_list_n %||% NA,
       sensitivity = params$sensitivity %||% NA, overlap = params$overlap %||% NA,
       audiomothr_version = meta$audiomothr %||% NA, birdnetr_version = meta$birdnetr %||% NA,
       birdnet_python = meta$birdnet_python %||% NA, analysis_date = meta$date %||% NA,
