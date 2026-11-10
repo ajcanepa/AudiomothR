@@ -341,7 +341,7 @@ Recordings at 250 kHz take longer (they are first converted to 48 kHz).
 | `There is no CONFIG.TXT` | Choose the root folder of the card, not a daily folder (or give `coordinates` to read a copy without `CONFIG.TXT`) |
 | The first run of BirdNET takes long | Normal: it installs Python and TensorFlow and downloads the model once (run `setup_birdnet()` beforehand) |
 | `Cannot download the BirdNET v2.4 model` | Check the connection and run `setup_birdnet()` again, or download the zip shown in the message and unzip it into the model folder (see Installation) |
-| `Give the results folder with output` | In scripts (`Rscript`) the results folder must be given: `output = "~/AudiomothR_results/card_01"` |
+| `Give the results folder with output` | In scripts (`Rscript`) the results folder must be given: `output = "~/AudiomothR_results/box_01"` |
 | Species from other continents | Check that `location_filter = TRUE` and that the coordinates are right (latitude first; west negative) |
 | `0 of the 3 requested examples meet the criteria` | See `species_summary()` or lower `min_confidence` / use `no_doubts = FALSE` |
 | A name "without a bird species in Observation.org" (only with own names) | Add `equivalences = c("BirdNET name" = "Observation.org name")` in `export_observation()` |

@@ -228,7 +228,7 @@ read_audiomoth <- function(folder = choose_folder(), coordinates = NULL, site = 
 #' @param suggested Folder proposed by default.
 #' @return The path of the chosen folder.
 #' @examples
-#' if (interactive()) choose_output("~/AudiomothR_results/card_01")
+#' if (interactive()) choose_output("~/AudiomothR_results/box_01")
 #' @export
 choose_output <- function(suggested = file.path("~", "AudiomothR_results")) {
   if (!interactive()) {
@@ -328,7 +328,7 @@ check_writable <- function(output) {
   unlink(probe)
   if (!ok) {
     abort("Cannot write in {.file {output}} (write-protected card or read-only folder?).",
-          "i" = "Give another results folder with {.arg output}, e.g. {.code output = \"~/AudiomothR_results/card_01\"}.")
+          "i" = "Give another results folder with {.arg output}, e.g. {.code output = \"~/AudiomothR_results/box_01\"}.")
   }
 }
 

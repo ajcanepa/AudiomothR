@@ -20,5 +20,5 @@ Enter accepts the suggested folder. The folder does not need to exist.
 given.
 }
 \examples{
-if (interactive()) choose_output("~/AudiomothR_results/card_01")
+if (interactive()) choose_output("~/AudiomothR_results/box_01")
 }

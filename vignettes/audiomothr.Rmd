@@ -71,7 +71,7 @@ Maps link); see `?parse_coordinates`.
 
 The results are saved in the `output` folder. When it is not given,
 `read_audiomoth()` asks for it in the console, suggesting a folder in
-`~/AudiomothR_results/` (or the one chosen last time for the same card); in
+`~/AudiomothR_results/` (or the one chosen last time for the same box); in
 scripts run with `Rscript` it must be given. Here a temporary folder is used,
 which disappears when R is closed: **in real use, choose a folder of your
 own, outside the card, for each box**. The folder gathers all the cards of
