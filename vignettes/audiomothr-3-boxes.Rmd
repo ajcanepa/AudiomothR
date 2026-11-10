@@ -26,8 +26,10 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 # The PDF report is rendered when Quarto is installed, but not during R CMD check
+# nor on continuous integration servers (GitHub Actions)
 quarto_ok <- !inherits(try(AudiomothR:::quarto_path(), silent = TRUE), "try-error") &&
-  rlang::is_installed(c("knitr", "rmarkdown")) && !nzchar(Sys.getenv("_R_CHECK_PACKAGE_NAME_"))
+  rlang::is_installed(c("knitr", "rmarkdown")) && !nzchar(Sys.getenv("_R_CHECK_PACKAGE_NAME_")) &&
+  !nzchar(Sys.getenv("CI"))
 options(AudiomothR.downloads = file.path(tempdir(), "Downloads"))
 ```
 

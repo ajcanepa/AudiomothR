@@ -152,6 +152,11 @@ read_audiomoth <- function(folder = choose_folder(), coordinates = NULL, site = 
   config <- if (length(config_file)) read_config(config_file[1]) else NULL
   output <- resolve_output(output, folder, config)
   check_writable(output)
+  # Now that it exists, its real path: before, normalizePath() may give
+  # another form of the same folder (/var vs /private/var on macOS, short
+  # names such as RUNNER~1 on Windows), which would not match the paths of
+  # the files inside it
+  output <- normalizePath(output, mustWork = FALSE)
   card_folder <- NULL
   if (!is.null(copy_to) && !isFALSE(copy_to)) {
     copy <- copy_card(folder, copy_to, output, config)
@@ -401,10 +406,13 @@ copy_card <- function(folder, copy_to, output, config) {
   system <- grepl("^(System Volume Information|\\$RECYCLE\\.BIN|\\.Trashes|\\.Spotlight-V100|\\.fseventsd)", files) |
     grepl(paste0("(^|", sep, ")\\."), files)
   files <- files[!system]
-  # The results folder may be inside the card (a copy of the card read before)
-  full <- normalizePath(file.path(folder, files), mustWork = FALSE)
-  inside <- startsWith(full, paste0(output, "/")) | startsWith(full, paste0(output, .Platform$file.sep))
-  files <- files[!inside]
+  # The results folder may be inside the card: its files are not copied (but
+  # when the folder read is itself inside the results folder, i.e. a copy
+  # made before with copy_to = TRUE, all its files are kept)
+  under <- function(x, dir) startsWith(x, paste0(dir, "/")) | startsWith(x, paste0(dir, .Platform$file.sep))
+  if (!under(folder, output)) {
+    files <- files[!under(normalizePath(file.path(folder, files), mustWork = FALSE), output)]
+  }
   wav <- files[grepl("\\.wav$", files, ignore.case = TRUE)]
   if (length(wav) == 0) abort("No WAV files were found in {.file {folder}}: nothing to copy.")
 
@@ -429,6 +437,7 @@ copy_card <- function(folder, copy_to, output, config) {
   }
   dir.create(dest, recursive = TRUE, showWarnings = FALSE)
   check_writable(dest)
+  dest <- normalizePath(dest, mustWork = FALSE)   # its real path, now that it exists
 
   src <- file.path(folder, files)
   target <- file.path(dest, files)

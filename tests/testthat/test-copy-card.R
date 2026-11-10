@@ -43,6 +43,11 @@ test_that("a copy into a backup folder goes by box, and is resumed", {
   expect_message(read_audiomoth(card, coordinates = "41.00, -3.00", output = am$output, copy_to = backup),
                  "already complete")
   # Reading the copy again later needs no copy_to, and keeps the same deployment
+  # (with copy_to it is recognised as the copy itself)
+  expect_message(read_audiomoth(copy, output = am$output, copy_to = backup), "already the copy")
+  out_true <- tempfile()
+  am_true <- read_card(card, output = out_true, copy_to = TRUE)
+  expect_message(read_audiomoth(am_true$folder, output = out_true, copy_to = TRUE), "already the copy")
   am2 <- read_card(copy, output = am$output)
   expect_equal(am2$deployment, am$deployment)
   expect_equal(nrow(am2$deployments), 1)
