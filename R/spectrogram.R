@@ -119,6 +119,7 @@ spectrogram_image <- function(wav, file, title = basename(wav), subtitle = "", m
   grDevices::png(file, width = width, height = height, res = 72)
   on.exit(grDevices::dev.off())
   draw_spectrogram(e$ras, e$spec, e$duration, title, subtitle, marks)
+  inform(c("v" = "Spectrogram in {.file {normalizePath(file, mustWork = FALSE)}}."))
   invisible(file)
 }
 
@@ -211,5 +212,6 @@ spectrogram_video <- function(wav, file, title = basename(wav), subtitle = "", m
     "-c:v", "libx264", "-r", fps, "-af", "aformat=channel_layouts=mono", "-c:a", "aac",
     "-ar", "48000", "-b:a", "192k", "-shortest", "-movflags", "+faststart", file
   ))
+  inform(c("v" = "Video in {.file {normalizePath(file, mustWork = FALSE)}}."))
   invisible(file)
 }

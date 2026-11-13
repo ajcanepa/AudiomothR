@@ -212,6 +212,12 @@ am <- read_audiomoth(
 )
 ```
 
+> **This vignette saves everything in the temporary folder of R**
+> (`tempdir()`), which is deleted when R closes. With your own recordings,
+> give a folder of your own, e.g. `output = "~/AudiomothR_results/box_01"`.
+> Each function says where it saved what it created; `output` (or
+> `am$output`) is the folder to open to find everything.
+
 What each argument means:
 
 - **`folder`** (the first one): the card. Without it, a window opens to
@@ -692,6 +698,8 @@ files[!grepl("^(birdnet|recordings|validation/clips|report/)", files)]
 | A species you know is there never appears | The location filter may leave it out: see vignette 2 |
 | `0 of the 3 requested examples meet the criteria` | Lower `min_confidence` of `extract_examples()`, or use `no_doubts = FALSE` |
 | Examples or validation without audio | Without `copy_to`, the card must be connected at the same path |
+| I cannot find the files (examples, spectrograms, videos, pages) | They are in the results folder (`am$output`); the message of each function gives the full path. With `output` in `tempdir()`, as in this vignette, they are deleted when R closes |
+| The validation page does not open in Firefox ("File not found") on Ubuntu | Firefox (and Chromium) installed as a *snap* cannot open files in `/tmp`, where `tempdir()` is: open the page in the Viewer of RStudio or in another browser, or use a results folder outside `/tmp` |
 | Too many messages | `options(AudiomothR.quiet = TRUE)` hides the informative ones |
 
 ## Next steps

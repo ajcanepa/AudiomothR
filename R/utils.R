@@ -148,6 +148,43 @@ path_under <- function(x, dir) {
   startsWith(clean(x), paste0(sub("/+$", "", clean(dir)), "/"))
 }
 
+#' Evaluates `expr` without the informative messages of the package (for the
+#' functions that call other exported functions, e.g. one spectrogram per
+#' example)
+#' @noRd
+quietly <- function(expr) {
+  old <- options(AudiomothR.quiet = TRUE)
+  on.exit(options(old))
+  expr
+}
+
+# Notes shown only once per session
+notes_shown <- new.env(parent = emptyenv())
+
+#' Notes, once per session, that the results folder is a temporary folder of
+#' R (examples and vignettes use one): it is deleted when R closes and is hard
+#' to find
+#' @noRd
+note_temporary_output <- function(output) {
+  if (isTRUE(notes_shown$temporary)) return(invisible(FALSE))
+  temp <- normalizePath(tempdir(), mustWork = FALSE)
+  if (!path_under(output, temp)) return(invisible(FALSE))
+  notes_shown$temporary <- TRUE
+  inform(c("i" = "{.file {output}} is in the temporary folder of R: it is deleted when R closes.",
+           " " = "For your own recordings give a folder of your own, e.g. {.code output = \"~/AudiomothR_results/box_01\"}."))
+  invisible(TRUE)
+}
+
+#' Hint for the browsers installed as snaps (Firefox and Chromium in Ubuntu),
+#' which cannot open the files in the /tmp folder of the system
+#' @return A named character vector for cli, or NULL.
+#' @noRd
+snap_browser_hint <- function(file) {
+  if (Sys.info()[["sysname"]] != "Linux" || !path_under(file, "/tmp")) return(NULL)
+  if (!any(file.exists(c("/snap/bin/firefox", "/snap/bin/chromium")))) return(NULL)
+  c("!" = "Firefox or Chromium installed as a snap (Ubuntu) cannot open files in {.file /tmp}: open the page in the Viewer of RStudio or in another browser, or give a results folder outside {.file /tmp}.")
+}
+
 #' Text that can be used as (part of) a file name on any system
 #' @noRd
 safe_name <- function(x) {

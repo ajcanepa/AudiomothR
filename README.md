@@ -396,6 +396,8 @@ Recordings at 250 kHz take longer (they are first converted to 48 kHz).
 | `The results folder ... already holds the results of another AudioMoth` | Use one `output` folder per box; each box gathers its own cards |
 | The map of the report has no background | Install `maptiles`, `sf` and `terra`, and check the Internet connection |
 | `There is no CONFIG.TXT` | Choose the root folder of the card, not a daily folder (or give `coordinates` to read a copy without `CONFIG.TXT`) |
+| I cannot find the files (examples, spectrograms, videos, pages) | They are in the results folder (`am$output`); the message of each function gives the full path. A folder in `tempdir()` is deleted when R closes |
+| The validation page does not open in Firefox ("File not found") on Ubuntu | Firefox (and Chromium) installed as a *snap* cannot open files in `/tmp`: open the page in the Viewer of RStudio or in another browser, or use a results folder outside `/tmp` |
 | The first run of BirdNET takes long | Normal: it installs Python and TensorFlow and downloads the model once (run `setup_birdnet()` beforehand) |
 | `Cannot download the BirdNET v2.4 model` | Check the connection and run `setup_birdnet()` again, or download the zip shown in the message and unzip it into the model folder (see Installation) |
 | `Give the results folder with output` | In scripts (`Rscript`) the results folder must be given: `output = "~/AudiomothR_results/box_01"` |

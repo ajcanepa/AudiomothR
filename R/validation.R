@@ -168,7 +168,8 @@ create_validation <- function(am, min_confidence = 0.5, min_detections = 1, n_cl
   close(con)
 
   inform(c("v" = "Validation page with {nrow(records)} record{?s} in {.file {html}}.",
-           "i" = "Listen and decide, press {.strong Download decisions (CSV)} and run {.code export_observation(am)}: the decisions are applied automatically."))
+           "i" = "Listen and decide, press {.strong Download decisions (CSV)} and run {.code export_observation(am)}: the decisions are applied automatically.",
+           snap_browser_hint(html)))
   if (open) tryCatch(utils::browseURL(html), error = function(e) inform("!" = "Cannot open the browser: {cli_escape(conditionMessage(e))}"))
   invisible(html)
 }
@@ -197,10 +198,10 @@ make_clip <- function(am, b, base, margin_s, spectrogram, has_ffmpeg) {
     clip <- cut_audio(path, from, to)
     tuneR::writeWave(clip$wave, wav)
     image <- paste0(base, ".png")
-    spectrogram_image(wav, image, title = sprintf("%s \u00b7 %.2f", b$common_name, b$confidence),
-                      subtitle = sprintf("%s %s \u00b7 %s, %g-%g s", b$local_date, b$local_time, b$file,
-                                         b$start_s, b$end_s),
-                      marks = c(b$start_s, b$end_s) - clip$from, width = 960, height = 420)
+    quietly(spectrogram_image(wav, image, title = sprintf("%s \u00b7 %.2f", b$common_name, b$confidence),
+                              subtitle = sprintf("%s %s \u00b7 %s, %g-%g s", b$local_date, b$local_time,
+                                                 b$file, b$start_s, b$end_s),
+                              marks = c(b$start_s, b$end_s) - clip$from, width = 960, height = 420))
   }
   list(audio = audio, image = image)
 }

@@ -1,3 +1,18 @@
+# AudiomothR 0.4.1 (in preparation)
+
+Changes after the review of Julia Guerra Carande (rOpenSci reviewer template).
+
+* `read_audiomoth()` notes, once per session, when the results folder is in
+  the temporary folder of R (`tempdir()`, as in the examples and the
+  vignettes): it is deleted when R closes.
+* `create_validation()` warns, on Linux, when the page is in `/tmp` and
+  Firefox or Chromium are installed as snaps (Ubuntu): they cannot open files
+  there.
+* `spectrogram_image()` and `spectrogram_video()` say where they saved the
+  file.
+* Vignette 1 and the README: where to find the files, and the validation
+  page that does not open in Firefox on Ubuntu, in the usual problems.
+
 # AudiomothR 0.4.0
 
 ## New features

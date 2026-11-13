@@ -157,6 +157,7 @@ read_audiomoth <- function(folder = choose_folder(), coordinates = NULL, site = 
   # names such as RUNNER~1 on Windows), which would not match the paths of
   # the files inside it
   output <- normalizePath(output, mustWork = FALSE)
+  note_temporary_output(output)
   card_folder <- NULL
   if (!is.null(copy_to) && !isFALSE(copy_to)) {
     copy <- copy_card(folder, copy_to, output, config)

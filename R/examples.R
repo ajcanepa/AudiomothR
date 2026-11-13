@@ -186,17 +186,17 @@ extract_examples <- function(am, species, n = 3, min_confidence = 0.85, no_doubt
                           x$local_time, x$time_zone, x$file, x$start_s, x$end_s)
       marks <- c(x$start_s, x$end_s) - clip$from
       png <- file.path(folder, paste0(base, ".png"))
-      spectrogram_image(file.path(dir_ex, wav), file.path(dir_ex, png), title = title, subtitle = subtitle,
-                        marks = marks, max_freq = max_freq, db_range = db_range, width = width,
-                        height = height)
+      quietly(spectrogram_image(file.path(dir_ex, wav), file.path(dir_ex, png), title = title,
+                                subtitle = subtitle, marks = marks, max_freq = max_freq,
+                                db_range = db_range, width = width, height = height))
       mp4 <- NA_character_
       if (video) {
         # The style is part of the name: both videos of a detection can coexist
         mp4 <- file.path(folder, paste0(base, if (style == "cursor") "" else "_scroll", ".mp4"))
-        spectrogram_video(file.path(dir_ex, wav), file.path(dir_ex, mp4), title = title,
-                          subtitle = subtitle, marks = marks, style = style, fps = fps,
-                          window_s = window_s, max_freq = max_freq, db_range = db_range,
-                          width = width, height = height)
+        quietly(spectrogram_video(file.path(dir_ex, wav), file.path(dir_ex, mp4), title = title,
+                                  subtitle = subtitle, marks = marks, style = style, fps = fps,
+                                  window_s = window_s, max_freq = max_freq, db_range = db_range,
+                                  width = width, height = height))
       }
       c(wav = wav, png = png, mp4 = mp4)
     }, error = function(e) conditionMessage(e))

@@ -77,7 +77,7 @@ test_that("the margin stays within the recording and 24-bit files are read", {
   w24 <- tempfile(fileext = ".wav")
   AudiomothR:::run_ffmpeg(c("-i", w, "-c:a", "pcm_s24le", w24))
   png <- tempfile(fileext = ".png")
-  spectrogram_image(w24, png)
+  suppressMessages(spectrogram_image(w24, png))
   expect_true(file.exists(png))
 })
 
