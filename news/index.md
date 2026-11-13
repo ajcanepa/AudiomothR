@@ -1,0 +1,307 @@
+# Changelog
+
+## AudiomothR 0.4.1 (in preparation)
+
+Changes after the review of Julia Guerra Carande (rOpenSci reviewer
+template).
+
+- [`read_audiomoth()`](https://ajcanepa.github.io/AudiomothR/reference/read_audiomoth.md)
+  notes, once per session, when the results folder is in the temporary
+  folder of R ([`tempdir()`](https://rdrr.io/r/base/tempfile.html), as
+  in the examples and the vignettes): it is deleted when R closes.
+- [`create_validation()`](https://ajcanepa.github.io/AudiomothR/reference/create_validation.md)
+  warns, on Linux, when the page is in `/tmp` and Firefox or Chromium
+  are installed as snaps (Ubuntu): they cannot open files there.
+- [`spectrogram_image()`](https://ajcanepa.github.io/AudiomothR/reference/spectrogram_image.md)
+  and
+  [`spectrogram_video()`](https://ajcanepa.github.io/AudiomothR/reference/spectrogram_video.md)
+  say where they saved the file.
+- Validation page: a click on a spectrogram shows it at full size (a
+  click or `Esc` closes it), while the page keeps its compact layout.
+- [`check_requirements()`](https://ajcanepa.github.io/AudiomothR/reference/check_requirements.md)
+  shows the version of Quarto and says when it is older than 1.4
+  (before, an old Quarto was reported as not found), and loads knitr and
+  rmarkdown instead of only looking for them: an old package that they
+  use (often htmltools) prevents loading them, and the message says
+  which one to update.
+- Messages that quote an error of another program or package no longer
+  show its braces doubled (`{{x}}`).
+- Vignette 1: a table of the thresholds of the workflow
+  (`min_confidence` of each step, `example_confidence`,
+  `location_threshold`…), what each one decides, and why a window with
+  two species is not necessarily wrong.
+- README: who the package is for; installation with the vignettes and
+  what it needs (pandoc); old Quarto and packages that do not load in
+  the usual problems.
+- The examples of
+  [`create_report()`](https://ajcanepa.github.io/AudiomothR/reference/create_report.md)
+  and
+  [`gbif_species_list()`](https://ajcanepa.github.io/AudiomothR/reference/gbif_species_list.md)
+  can now be run (`example(create_report)`): they use the example card
+  and a temporary folder. Those of
+  [`setup_birdnet()`](https://ajcanepa.github.io/AudiomothR/reference/setup_birdnet.md),
+  [`analyze_birdnet()`](https://ajcanepa.github.io/AudiomothR/reference/analyze_birdnet.md)
+  and
+  [`process_audiomoth()`](https://ajcanepa.github.io/AudiomothR/reference/process_audiomoth.md)
+  are still not run, because they install BirdNET (about 3 GB).
+- Contribution guidelines (`.github/CONTRIBUTING.md`), a code of conduct
+  (Contributor Covenant 2.1) and templates for the issues, linked from
+  the README.
+- Web site of the package, built with pkgdown:
+  <https://ajcanepa.github.io/AudiomothR/>. The vignettes can be read
+  there without building them when installing.
+- Vignette 1 and the README: where to find the files, and the validation
+  page that does not open in Firefox on Ubuntu, in the usual problems.
+
+## AudiomothR 0.4.0
+
+### New features
+
+- **Copy of the card** (`copy_to` in
+  [`read_audiomoth()`](https://ajcanepa.github.io/AudiomothR/reference/read_audiomoth.md)
+  and
+  [`process_audiomoth()`](https://ajcanepa.github.io/AudiomothR/reference/process_audiomoth.md)):
+  the card is first copied to the disk and everything is done with the
+  copy, so the card can be formatted for the next deployment, the
+  recordings are kept as a backup, and the examples, the validation page
+  and new analyses keep working without the card. `copy_to = TRUE`
+  copies it into `<output>/recordings/<first date>-<last date>/`; a
+  folder copies it into
+  `<folder>/AudioMoth_<ID>/<first date>-<last date>/`. The copy keeps
+  the structure and the dates of the card, checks the size of each file
+  and continues where it stopped. The original folder is kept in the new
+  column `card_folder` of `AudioMoth_<ID>_deployments.csv`.
+- **Own list of species** (`species_list` in
+  [`analyze_birdnet()`](https://ajcanepa.github.io/AudiomothR/reference/analyze_birdnet.md),
+  also through
+  [`process_audiomoth()`](https://ajcanepa.github.io/AudiomothR/reference/process_audiomoth.md)):
+  only the species of the list are analysed, instead of those expected
+  by the location filter. The list may be a vector of scientific names,
+  the species list of BirdNET-Analyzer (`.txt`), a CSV file with a
+  column of scientific names or a data frame; names of BirdNET, the IOC
+  World Bird List, Observation.org or GBIF are accepted.
+  [`read_species_list()`](https://ajcanepa.github.io/AudiomothR/reference/read_species_list.md)
+  reads and checks a list, and the package includes a template
+  (`inst/extdata/example/species_list.csv`). Each list is a different
+  analysis in the cache, which keeps the list used (`species_list.csv`).
+  The report states which filter was used.
+- [`gbif_species_list()`](https://ajcanepa.github.io/AudiomothR/reference/gbif_species_list.md):
+  the bird species observed within a radius of the recorder, in the
+  months of its recordings, in the datasets of eBird, Observation.org
+  and iNaturalist published by GBIF (public API, without an account or a
+  key), translated into BirdNET names and ready to be used as
+  `species_list`. Useful for species that the location filter of BirdNET
+  leaves out (nocturnal, secretive or scarce species, little visited
+  areas). A new table
+  (`inst/extdata/taxonomy/birdnet_v2.4_to_gbif.csv.gz`, built with
+  `data-raw/build_gbif_keys.R`) links each bird of BirdNET v2.4 to its
+  species in the GBIF Backbone Taxonomy.
+
+### Documentation
+
+- The help of
+  [`analyze_birdnet()`](https://ajcanepa.github.io/AudiomothR/reference/analyze_birdnet.md),
+  the vignette and the README explain how the location filter works
+  (BirdNET metadata model trained with eBird checklists, probability of
+  occurrence per site and week, threshold 0.03), when it may leave out
+  species that are present, and the alternatives (lower threshold, own
+  list, list from GBIF, no filter).
+- The vignette and the README recommend copying the card before working.
+- The vignette is now split into three, to be read in order: **1.
+  Getting started: the complete workflow**
+  ([`vignette("audiomothr-1-workflow")`](https://ajcanepa.github.io/AudiomothR/articles/audiomothr-1-workflow.md),
+  every step and every function with the example card, with images of
+  the validation page and of the report, checks and a section of usual
+  problems), **2. Which species BirdNET looks for**
+  ([`vignette("audiomothr-2-species")`](https://ajcanepa.github.io/AudiomothR/articles/audiomothr-2-species.md))
+  and **3. Several cards, several boxes and reports**
+  ([`vignette("audiomothr-3-boxes")`](https://ajcanepa.github.io/AudiomothR/articles/audiomothr-3-boxes.md)).
+- New example data: `inst/extdata/example/gbif_species_list.csv`, the
+  list of the species observed in GBIF around the example site.
+
+### Other changes
+
+- `jsonlite` is a new dependency (already installed with `reticulate`).
+- Julia Guerra Carande joins the authors. The ORCID of the authors is
+  now in `DESCRIPTION` and `CITATION.cff`, with their affiliations.
+
+## AudiomothR 0.3.0
+
+### Breaking changes
+
+- The package is now in English: functions, arguments, messages, help,
+  the vignette, the PDF report and the columns and names of the result
+  files. Equivalences with version 0.2.0:
+
+  | 0.2.0 | 0.3.0 |
+  |----|----|
+  | `leer_audiomoth(carpeta, coordenadas, punto, precision_m, zona_horaria, salida)` | `read_audiomoth(folder, coordinates, site, precision_m, time_zone, output)` |
+  | `leer_config()` | [`read_config()`](https://ajcanepa.github.io/AudiomothR/reference/read_config.md) |
+  | `parsear_coordenadas()` | [`parse_coordinates()`](https://ajcanepa.github.io/AudiomothR/reference/parse_coordinates.md) |
+  | `seleccionar_carpeta()` | [`choose_folder()`](https://ajcanepa.github.io/AudiomothR/reference/choose_folder.md) |
+  | `preparar_audios()` | [`prepare_audio()`](https://ajcanepa.github.io/AudiomothR/reference/prepare_audio.md) |
+  | `analizar_birdnet(confianza_minima, idioma, filtro_ubicacion, umbral_ubicacion, solapamiento, sensibilidad, hilos, reanalizar)` | `analyze_birdnet(min_confidence, language, location_filter, location_threshold, overlap, sensitivity, threads, reanalyze)` |
+  | `leer_detecciones()` | [`read_detections()`](https://ajcanepa.github.io/AudiomothR/reference/read_detections.md) |
+  | `resumen_especies()` | [`species_summary()`](https://ajcanepa.github.io/AudiomothR/reference/species_summary.md) |
+  | `especies_detectadas(confianza_ejemplos)` | `detected_species(example_confidence)` |
+  | `seleccionar_ejemplos()` | [`select_examples()`](https://ajcanepa.github.io/AudiomothR/reference/select_examples.md) |
+  | `extraer_ejemplos(margen_s, estilo = "desplazamiento")` | `extract_examples(margin_s, style = "scroll")` |
+  | `imagen_espectrograma()`, `video_espectrograma()` | [`spectrogram_image()`](https://ajcanepa.github.io/AudiomothR/reference/spectrogram_image.md), [`spectrogram_video()`](https://ajcanepa.github.io/AudiomothR/reference/spectrogram_video.md) |
+  | `exportar_observation(min_detecciones, solo_sin_dudas, desde, hasta, equivalencias, archivo)` | `export_observation(min_detections, no_doubts_only, from, to, equivalences, file)` |
+  | `crear_informe(cajas, por_caja, salida, titulo, abrir)` | `create_report(recorders, by_recorder, output, title, open)` |
+  | `procesar_audiomoth(especies_ejemplo, n_ejemplos, confianza_ejemplos, estilo_video, informe)` | `process_audiomoth(example_species, n_examples, example_confidence, video_style, report)` |
+  | `comprobar_requisitos()` | [`check_requirements()`](https://ajcanepa.github.io/AudiomothR/reference/check_requirements.md) |
+
+  Results files: `AudioMoth_<ID>_recordings.csv`, `_detections.csv`,
+  `_observation.csv`, `examples/`, `report/` and `validation/`. Results
+  of version 0.2.0 must be produced again (the BirdNET cache has a new
+  layout).
+
+- The language of the common names is taken from the operating system
+  (`language` in
+  [`analyze_birdnet()`](https://ajcanepa.github.io/AudiomothR/reference/analyze_birdnet.md));
+  notes of Observation.org are in English unless the language is
+  Spanish.
+
+- The minimum confidence is inclusive (`>=`) everywhere.
+
+### New features
+
+- [`setup_birdnet()`](https://ajcanepa.github.io/AudiomothR/reference/setup_birdnet.md)
+  installs and checks BirdNET. The BirdNET model is now downloaded by
+  AudiomothR (with retries and an MD5 check) into the folder where the
+  Python package ‘birdnet’ looks for it on Windows, macOS and Linux: its
+  own download gave up after 30 s on slow connections. The messages of
+  TensorFlow Lite are no longer shown.
+- One results folder per box, which gathers its successive SD cards:
+  each card read is a *deployment* with its own dates, site and location
+  (`AudioMoth_<ID>_deployments.csv`), so a box can be moved between
+  sampling sites. BirdNET (location filter), the export to
+  Observation.org (`lat`, `lng`, `accuracy` of each record), the
+  validation and the report (map and table of the deployments) use the
+  location of each card. The location is given with `coordinates` or
+  taken from `CONFIG.TXT` with a warning, and is asked for in
+  interactive sessions (Enter = the previous site). Only the new
+  recordings are analysed, and the results of cards no longer connected
+  are kept.
+- When `output` is not given,
+  [`read_audiomoth()`](https://ajcanepa.github.io/AudiomothR/reference/read_audiomoth.md)
+  and
+  [`process_audiomoth()`](https://ajcanepa.github.io/AudiomothR/reference/process_audiomoth.md)
+  ask for the results folder
+  ([`choose_output()`](https://ajcanepa.github.io/AudiomothR/reference/choose_output.md)),
+  suggesting one outside the card and remembering the folder of each
+  box; in non-interactive sessions the remembered folder is used, or it
+  must be given. Before, the results were saved inside the card.
+- The metadata of the WAV files are cached in the results folder
+  (`.inventory_cache.rds`): reading a card again only reads the new or
+  changed files.
+- [`create_validation()`](https://ajcanepa.github.io/AudiomothR/reference/create_validation.md)
+  creates a self-contained web page to validate the records by ear
+  before exporting them: one card per species and day, from the least to
+  the most plausible (confidence and probability of occurrence at the
+  site), with audio clips, spectrograms and the other species that
+  BirdNET proposed. Records can be marked as valid, not valid or unsure,
+  or relabelled with autocompletion.
+  [`read_validation()`](https://ajcanepa.github.io/AudiomothR/reference/read_validation.md)
+  reads the decisions (also from the Downloads folder) and
+  [`export_observation()`](https://ajcanepa.github.io/AudiomothR/reference/export_observation.md)
+  applies them: validated records are exported with `is certain = True`
+  even with a single detection, and those marked as not valid are left
+  out.
+- [`analyze_birdnet()`](https://ajcanepa.github.io/AudiomothR/reference/analyze_birdnet.md)
+  stores the probability of occurrence of each species at the site and
+  week (`location_prob`), the UTC offset of each detection and the
+  versions of the software (`birdnet/<ID>_<key>/metadata.txt`).
+- Triggered recordings (`*T.WAV`, amplitude or frequency threshold) are
+  expanded before the analysis, so that times and durations are right.
+- [`read_audiomoth()`](https://ajcanepa.github.io/AudiomothR/reference/read_audiomoth.md)
+  reads cards without `CONFIG.TXT`, GUANO metadata (exact battery
+  voltage), comments with a deployment ID, and finds duplicated
+  recordings.
+- [`process_audiomoth()`](https://ajcanepa.github.io/AudiomothR/reference/process_audiomoth.md)
+  gains `precision_m`, `example_species = "auto"`, `video`, `export`,
+  `validation` and checks its arguments before the analysis.
+- [`detected_species()`](https://ajcanepa.github.io/AudiomothR/reference/detected_species.md)
+  returns the vector it prints, ready for
+  [`extract_examples()`](https://ajcanepa.github.io/AudiomothR/reference/extract_examples.md),
+  which also accepts a list of recorders.
+- [`parse_coordinates()`](https://ajcanepa.github.io/AudiomothR/reference/parse_coordinates.md)
+  reads hemisphere letters before the numbers or written in words,
+  degrees-minutes-seconds without symbols, typographic minus signs,
+  Google Maps links and named numeric vectors, and rejects texts that
+  are not coordinates.
+
+### Bug fixes (audit of 2026-10-26)
+
+- Coordinates: the sign was lost with the hemisphere before the number,
+  degrees-minutes-seconds separated by spaces gave wrong values, and
+  swapped latitude and longitude were accepted without warning (now
+  compared with `CONFIG.TXT`). The precision of a numeric vector was
+  about 69 km.
+- Taxonomy: the BirdNET → IOC table was rebuilt from the BirdNET v2.4
+  labels and the official IOC comparison with other checklists
+  (`data-raw/build_taxonomy.R`): the 250 birds that were lost (Eurasian
+  jackdaw, cattle egret, little ringed plover, alpine swift, goshawk…)
+  now reach Observation.org. Species split by IOC are translated
+  according to the location (`regional_rules.csv`) or reported. Own
+  `equivalences` are checked.
+- Observation.org: the exported names are now those of the species list
+  of Observation.org (downloaded on 2026-10-28), which differs from IOC
+  in some lumps and genera: every bird of BirdNET v2.4 has a valid name
+  (e.g. *Corvus cornix* → *Corvus corone*, *Saxicola stejnegeri* →
+  *Saxicola maurus*, *Tumbezia salvini* → *Ochthoeca salvini*), and the
+  BirdNET name is kept in the notes when they differ.
+- BirdNET cache: changing a parameter no longer deletes previous
+  results; arguments are checked before anything is written; interrupted
+  conversions and results are written atomically and detected; errors
+  are recorded in the column `analysis` and in `errors.csv`; an empty
+  location filter or an analysis where every recording fails are errors
+  instead of “0 detections”. The cache is separated by recorder. Doubts
+  no longer depend on `min_confidence` and classes that are not species
+  (“Engine”, “Human vocal”…) no longer count as species nor as doubts.
+  Overlapping windows are grouped into events. BirdNET weeks follow the
+  eBird convention. The Polish labels of BirdNET v2.4, which are wrong,
+  are rejected.
+- Examples: successive calls add to the index instead of replacing it,
+  the `scroll` video no longer overwrites the `cursor` one, paths are
+  relative, a failed example does not stop the others, species names are
+  matched without accents and by IOC name, 24 and 32-bit WAV files are
+  read, and the `scroll` video is no longer quadratic in time.
+- Observation.org: the location of `am` is used (not that of the
+  analysis), accuracy above 1000 m is warned about, `from`/`to` accept
+  `DD/MM/YYYY`, the external reference is unique and stable, and a CSV
+  edited by hand is not overwritten.
+- Report: it no longer deletes the examples, keeps the edits of its
+  template, flags recorders not analysed, counts only analysed audio,
+  survives missing temperature or dates, site names with quotes or `@`,
+  CSV files saved with `;`, and shows the real error of Quarto. Quarto
+  receives [`.libPaths()`](https://rdrr.io/r/base/libPaths.html).
+- Inventory: faster, with the gain of each recording, the UTC offset of
+  old firmware (`Time zone`), warnings about WAV files outside the daily
+  folders, a clear error when the card is write-protected, time zones
+  such as `"UTC+2"`, and a warning when the time zone does not fit the
+  location (Canary Islands).
+- The example data and tests no longer contain the ID or location of a
+  real recorder.
+- Triggered recordings (T.WAV): the compressed blocks are aligned with
+  the file, not with the start of the audio, and the expanded file is
+  written in pieces. Links of Google Maps: the marked point is used,
+  never the centre of the map view (`@`). Duplicated recordings name the
+  copy that is kept. Thanks to José Antonio Barbero-Aparicio, whose
+  review (pull request
+  [\#1](https://github.com/ajcanepa/AudiomothR/issues/1), on version
+  0.2.0) found these problems, provided the tests of T.WAV files and
+  deployment IDs, and independently confirmed the BirdNET → IOC table.
+
+## AudiomothR 0.2.0
+
+- `crear_informe()`: PDF report (Quarto + Typst) of one or several
+  recorders.
+- `especies_detectadas()`, number of examples per species and
+  `comprobar_requisitos()`.
+
+## AudiomothR 0.1.0
+
+- First version: reading AudioMoth cards, analysis with BirdNET, audio,
+  spectrogram and video examples, and export to Observation.org.

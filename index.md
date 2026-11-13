@@ -1,0 +1,545 @@
+# AudiomothR
+
+[![R-CMD-check](https://github.com/ajcanepa/AudiomothR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ajcanepa/AudiomothR/actions/workflows/R-CMD-check.yaml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23646408.svg)](https://doi.org/10.5281/zenodo.23646408)
+
+R package to process the cards of **AudioMoth** recorders, from the SD
+card to the records of a citizen-science platform:
+
+1.  **Read the card**: configuration (`CONFIG.TXT`), location and
+    metadata of each WAV file (start time in UTC, battery, temperature),
+    with checks of faulty, duplicated or triggered recordings.
+    Optionally, **copy the card to the disk first** and work on the copy
+    (the card can then be formatted).
+2.  **Analyse the recordings with BirdNET** through
+    [birdnetR](https://birdnet-team.github.io/birdnetR/), with the
+    species expected at the site and week (location filter) or an **own
+    list of species** (that of BirdNET-Analyzer, a CSV file, or one
+    built from the observations published in GBIF around the recorder),
+    and a cache that resumes interrupted analyses.
+3.  **Review the species** and **extract examples**: the exact sound of
+    the best detections, their spectrogram and a **video of the
+    spectrogram** with the audio.
+4.  **Validate the records by ear** (optional) on a web page that works
+    in any browser, from the least to the most plausible.
+5.  **Export to Observation.org**, translating BirdNET names into the
+    names of Observation.org.
+6.  Create a **PDF report** of one or several recorders.
+
+**Who is it for?** Ecologists, naturalists, technicians of protected
+areas and citizen-science volunteers who deploy AudioMoth recorders to
+monitor birds and want to go from the SD card to checked records without
+programming the workflow themselves. Basic knowledge of R is enough:
+each step is one function, the vignettes start from zero with an example
+card, and
+[`process_audiomoth()`](https://ajcanepa.github.io/AudiomothR/reference/process_audiomoth.md)
+runs everything in one call. Bioacousticians can use it to organise many
+cards and boxes, choose the species that BirdNET looks for, and validate
+the detections by ear before publishing them.
+
+> **New to AudiomothR?** Everything, vignettes included, can be read on
+> the web site of the package: <https://ajcanepa.github.io/AudiomothR/>.
+> Follow the three vignettes in order, with the example card of the
+> package:
+> [`vignette("audiomothr-1-workflow")`](https://ajcanepa.github.io/AudiomothR/articles/audiomothr-1-workflow.md)
+> (the complete workflow),
+> [`vignette("audiomothr-2-species")`](https://ajcanepa.github.io/AudiomothR/articles/audiomothr-2-species.md)
+> (which species BirdNET looks for) and
+> [`vignette("audiomothr-3-boxes")`](https://ajcanepa.github.io/AudiomothR/articles/audiomothr-3-boxes.md)
+> (several cards, boxes and reports). See section 15.
+
+------------------------------------------------------------------------
+
+## 1. Requirements
+
+| What | Required | What for | How to install |
+|----|----|----|----|
+| **R ≥ 4.1** | Yes | — | <https://cran.r-project.org> |
+| R packages `birdnetR`, `tuneR`, `processx`, `cli`, `reticulate`, `rlang`, `jsonlite` | Yes | BirdNET, audio, external programs, messages | Installed with AudiomothR |
+| **ffmpeg** | Yes | Converting audio to 48 kHz, clips and MP4 videos | Linux: `sudo apt install ffmpeg` · macOS: `brew install ffmpeg` · Windows: `winget install ffmpeg` |
+| **Internet connection** (first time only) | Yes | birdnetR downloads its Python, TensorFlow and the BirdNET model | Automatic: Python does not need to be installed by hand |
+| Internet connection (later) | No | Only for [`gbif_species_list()`](https://ajcanepa.github.io/AudiomothR/reference/gbif_species_list.md) (species observed around the site, from GBIF) and the map of the report | — |
+| ~3 GB of disk | Yes | Python environment of BirdNET (Python 3.11 and TensorFlow 2.15, in the reticulate/uv cache) and the model (73 MB) | Automatic with [`setup_birdnet()`](https://ajcanepa.github.io/AudiomothR/reference/setup_birdnet.md) (or the first [`analyze_birdnet()`](https://ajcanepa.github.io/AudiomothR/reference/analyze_birdnet.md)) |
+| `seewave` | No | Spectrogram computation (AudiomothR has an equivalent one of its own) | `install.packages("seewave")` |
+| `rstudioapi` or `tcltk` | No | Dialog to choose the card folder | Come with RStudio / R |
+| **Quarto ≥ 1.4**, `knitr`, `rmarkdown` | No | PDF report ([`create_report()`](https://ajcanepa.github.io/AudiomothR/reference/create_report.md)); no LaTeX needed | Included in RStudio and Positron; otherwise <https://quarto.org> |
+| `maptiles`, `sf`, `terra` | No | Map of the recorders on OpenStreetMap in the report (without them, a map without background) | `install.packages(c("maptiles", "sf", "terra"))` |
+| `testthat` | No | Tests | `install.packages("testthat")` |
+
+## 2. Installation
+
+``` r
+
+install.packages("remotes")
+remotes::install_github("ajcanepa/AudiomothR")            # latest version
+remotes::install_github("ajcanepa/AudiomothR@v0.4.0")     # a given version
+# With the vignettes, to read them with browseVignettes("AudiomothR"):
+remotes::install_github("ajcanepa/AudiomothR", build_vignettes = TRUE)
+```
+
+Building the vignettes needs `knitr`, `rmarkdown` and pandoc (pandoc
+comes with RStudio and Positron; in a plain R console, install it from
+<https://pandoc.org>). If the installation with vignettes fails, install
+without them: they can be read on the web site of the package,
+<https://ajcanepa.github.io/AudiomothR/articles/>.
+
+Check that everything is ready:
+
+``` r
+
+library(AudiomothR)
+check_requirements()   # what is installed, what is missing, language of the names
+setup_birdnet()        # the 1st time: installs Python, TensorFlow and the BirdNET model (a few minutes)
+```
+
+[`setup_birdnet()`](https://ajcanepa.github.io/AudiomothR/reference/setup_birdnet.md)
+works the same on **Windows, macOS (Intel and Apple silicon) and
+Linux**: birdnetR installs its own Python with uv, so neither Python nor
+TensorFlow have to be installed by hand, and AudiomothR downloads the
+BirdNET model itself (with retries and an integrity check) into the
+folder where BirdNET looks for it:
+
+| System  | Model folder                                               |
+|---------|------------------------------------------------------------|
+| Windows | `%APPDATA%\birdnet\models\v2.4\TFLite`                     |
+| macOS   | `~/Library/Application Support/birdnet/models/v2.4/TFLite` |
+| Linux   | `~/.local/share/birdnet/models/v2.4/TFLite`                |
+
+Besides R, only **ffmpeg** has to be installed (see the table above)
+and, for the report, Quarto. On Windows, TensorFlow needs the *Microsoft
+Visual C++ Redistributable*, which almost every computer already has; if
+loading BirdNET fails with a message about `msvcp140.dll`, install it
+from <https://aka.ms/vs/17/release/vc_redist.x64.exe>.
+
+## 3. Quick start (everything in one call)
+
+``` r
+
+library(AudiomothR)
+
+am <- process_audiomoth(
+  folder = "/path/to/the/card",                   # or without it: a dialog opens
+  coordinates = "41°07'24.4\"N 3°07'24.4\"W",     # copied from Google Earth
+  site = "River - bridge",                        # optional
+  output = "~/AudiomothR_results/box_01",          # one folder per box (all its cards)
+  copy_to = TRUE,                                 # copy the card first and work on the copy
+  example_species = "auto",                       # examples of the detected species
+  validation = TRUE,                              # page to validate the records by ear
+  report = TRUE                                   # PDF report (needs Quarto)
+)
+```
+
+The **folder** is the root of the card: the one that contains
+`CONFIG.TXT` and the daily folders (`20261006/`, `20261007/`…). The
+**output** folder keeps the results of the **box**: every new card of
+the same box is added to it (see “Several cards of the same box” below).
+When it is not given, it is asked for in the console, suggesting
+`~/AudiomothR_results/AudioMoth_<ID>` (or the folder chosen before for
+the same box). With **`copy_to = TRUE`** the card is first copied into
+`<output>/recordings/` and everything is done with the copy (see
+“Copying the card” below).
+
+## 4. Step by step
+
+``` r
+
+library(AudiomothR)
+
+# 1. Card, CONFIG.TXT, location and inventory of the recordings (copying the
+#    card to the disk first, recommended)
+am <- read_audiomoth("/path/to/the/card", coordinates = "41.123456, -3.123456",
+                     output = "~/AudiomothR_results/box_01", copy_to = TRUE)
+
+# 2-3. Audio ready for BirdNET and analysis (it resumes if interrupted)
+am <- prepare_audio(am)                 # optional: analyze_birdnet() does it
+am <- analyze_birdnet(am)               # common names in the language of the system
+am <- analyze_birdnet(am, language = "es")   # ...or in another one (no new analysis)
+# ...or only the species of an own list, instead of the location filter
+am <- analyze_birdnet(am, species_list = "~/species_list.txt")    # BirdNET-Analyzer list
+am <- analyze_birdnet(am, species_list = gbif_species_list(am))   # observed around, in GBIF
+
+# 4. Which species: prints a vector ready to copy, change the n and paste
+species <- detected_species(am)
+#> species <- c(
+#>   "Cettia cetti"            = 3,  # Cetti's Warbler | 41 detections | confidence max. 0.97, mean 0.71
+#>   "Troglodytes troglodytes" = 2,  # Eurasian Wren | 12 detections | ...
+#> )
+
+# 5. Examples (WAV + PNG + MP4) of the chosen species
+extract_examples(am, species)                                   # the vector as returned
+extract_examples(am, c("Cettia cetti" = 3, "Eurasian Wren" = 1))
+extract_examples(am, "Cettia cetti", style = "scroll")           # another style of video
+
+# 6. Validation by ear (optional): open the page, decide, download the decisions
+create_validation(am)
+
+# 7. CSV for Observation.org (applies the validation automatically)
+export_observation(am)
+
+# 8. PDF report (one recorder, or several: one section each or all together)
+create_report(am)
+create_report(list(am1, am2, am3), by_recorder = FALSE, output = "report_river")
+```
+
+### Several cards of the same box
+
+A box (AudioMoth) usually stays in the field for months while its SD
+cards are replaced every few days. Use **one results folder per box**:
+each card is read into it as a new *deployment*, with its own dates,
+site and location (the box may have been moved), and its recordings are
+added to those of the previous cards.
+
+``` r
+
+out <- "~/AudiomothR_results/box_01"
+am <- read_audiomoth("/media/SD", coordinates = "41.123456, -3.123456",
+                     site = "River - bridge", output = out)     # first card
+am <- analyze_birdnet(am)
+# ...ten days later, the next card (the box was moved to another site)
+am <- read_audiomoth("/media/SD", coordinates = "41.300000, -3.400000",
+                     site = "Pine forest", output = out)        # second card
+am <- analyze_birdnet(am)          # only analyses the new recordings
+export_observation(am)             # all the cards, each record with its location
+```
+
+The location of each card is the one given in `coordinates` or,
+otherwise, that of its `CONFIG.TXT` (with a warning: it must have been
+updated in the AudioMoth app when the box was moved). In an interactive
+session, if there is none, it is asked for (Enter = the site of the
+previous card). The cards are listed in
+`AudioMoth_<ID>_deployments.csv`; the results of a card that is no
+longer connected are kept, and the report shows every site on the map.
+
+### Copying the card (recommended)
+
+By default the card is read where it is (it is never modified), and the
+steps that go back to the audio (examples, validation, a new analysis)
+need it connected. With `copy_to` the card is first copied to the disk
+and everything is done with the copy, so the card can be formatted for
+the next deployment:
+
+``` r
+
+read_audiomoth("/media/SD", output = out, copy_to = TRUE)              # <output>/recordings/<dates>/
+read_audiomoth("/media/SD", output = out, copy_to = "/media/backup")   # /media/backup/AudioMoth_<ID>/<dates>/
+```
+
+The copy keeps the structure and dates of the card and checks the size
+of each file; an interrupted copy continues where it stopped. The
+original folder is kept in the column `card_folder` of
+`AudioMoth_<ID>_deployments.csv`.
+
+### Which species BirdNET looks for
+
+By default, only the species that the BirdNET metadata model (trained
+with eBird checklists) expects at the site and week of each recording,
+with a probability of occurrence ≥ 0.03 (`location_threshold`). It works
+well for common species, but it may leave out species that are present
+yet seldom reported to eBird: **nocturnal, secretive or scarce species,
+and little visited areas**. Then:
+
+| Option | Argument |
+|----|----|
+| Lower the threshold | `analyze_birdnet(am, location_threshold = 0.01)` |
+| Own list of species (vector, BirdNET-Analyzer `.txt`, CSV with a `scientific_name` column, data frame) | `analyze_birdnet(am, species_list = ...)`; check it with [`read_species_list()`](https://ajcanepa.github.io/AudiomothR/reference/read_species_list.md); template in `system.file("extdata", "example", "species_list.csv", package = "AudiomothR")` |
+| Species observed around the site in GBIF (eBird, Observation.org, iNaturalist), without an account | `species_list = gbif_species_list(am, radius_km = 25)` |
+| No filter (more mistakes: validate by ear) | `analyze_birdnet(am, location_filter = FALSE)` |
+
+Names of BirdNET, IOC, Observation.org or GBIF are accepted. The
+probability of occurrence is always kept in `location_prob`, and the
+validation page shows first the least plausible records. See
+[`vignette("audiomothr-2-species")`](https://ajcanepa.github.io/AudiomothR/articles/audiomothr-2-species.md)
+for the details.
+
+### Resuming the work another day
+
+Recordings already analysed are not analysed again: just repeat
+
+``` r
+
+am <- read_audiomoth("/path/to/the/card", coordinates = "41.123456, -3.123456",
+                     output = "~/AudiomothR_results/box_01")
+am <- analyze_birdnet(am)     # only analyses what is missing
+```
+
+The BirdNET cache (`<output>/birdnet/`) keeps one folder per combination
+of parameters: changing a parameter analyses the card again **without
+deleting the previous results**, and going back to the previous
+parameters reuses them. Changing `language` or raising `min_confidence`
+above 0.1 does not need a new analysis. If the location changes after
+the analysis (e.g. to correct it),
+[`export_observation()`](https://ajcanepa.github.io/AudiomothR/reference/export_observation.md)
+uses the current one.
+
+## 5. Functions
+
+| Function | What it does | Returns |
+|----|----|----|
+| [`process_audiomoth()`](https://ajcanepa.github.io/AudiomothR/reference/process_audiomoth.md) | The whole workflow in one call | `audiomoth` object |
+| [`check_requirements()`](https://ajcanepa.github.io/AudiomothR/reference/check_requirements.md) | Which requirements (ffmpeg, birdnetR, Quarto…) are installed, how to install the missing ones and the language of the common names | Logical vector |
+| [`setup_birdnet()`](https://ajcanepa.github.io/AudiomothR/reference/setup_birdnet.md) | Installs and checks BirdNET (Python environment and model) | `TRUE` |
+| [`choose_folder()`](https://ajcanepa.github.io/AudiomothR/reference/choose_folder.md) | Dialog to choose the folder of the card | Path |
+| [`choose_output()`](https://ajcanepa.github.io/AudiomothR/reference/choose_output.md) | Asks for the results folder in the console | Path |
+| `read_audiomoth(folder, coordinates, site, precision_m, time_zone, output, copy_to)` | Reads `CONFIG.TXT`, the location and the metadata of all the WAV files (optionally copying the card to the disk first); saves the inventory | `audiomoth` object (`am$config`, `am$location`, `am$recordings`) |
+| `read_config(file)` | Reads a `CONFIG.TXT` file | List of settings |
+| `parse_coordinates(text)` | Reads coordinates copied from Google Earth / Maps or a GPS | `lat`, `lon`, `precision_m` |
+| `prepare_audio(am)` | Converts to 48 kHz mono what needs it (expanding triggered recordings) | `am` with `birdnet_path` |
+| `analyze_birdnet(am, min_confidence, language, version, location_filter, location_threshold, species_list, ...)` | Analyses with BirdNET (location filter or own list of species) and saves the CSV of detections | `am` with `am$detections` |
+| `read_species_list(species_list)` | Reads a list of species (vector, BirdNET-Analyzer `.txt`, CSV, data frame) and translates it into BirdNET names | Data frame |
+| `gbif_species_list(x, radius_km, months, years, datasets, min_records, file)` | Species observed in GBIF around the site (eBird, Observation.org, iNaturalist), in BirdNET names | Data frame (usable as `species_list`) |
+| `read_detections(x)` | Reads the detections of an `am` or of an `AudioMoth_<ID>_detections.csv` | Data frame |
+| `species_summary(x, min_confidence)` | Summary by species: detections, days, confidence, probability of occurrence, candidate examples | Data frame |
+| `detected_species(x, min_confidence, example_confidence, n_max)` | Prints the detected species as a vector `c("species" = n, ...)` ready to paste into [`extract_examples()`](https://ajcanepa.github.io/AudiomothR/reference/extract_examples.md), and returns it | Named vector |
+| `select_examples(x, species, n, ...)` | Chooses the best detections (without creating files) | Data frame |
+| `extract_examples(am, species, n, margin_s, style, ...)` | Creates the WAV, PNG and MP4 of each example | Index of examples |
+| `spectrogram_image(wav, file, ...)` | PNG spectrogram of any WAV file | Path |
+| `spectrogram_video(wav, file, style, ...)` | MP4 video of the spectrogram of any WAV file, with its audio | Path |
+| `create_validation(am, min_confidence, n_clips, ...)` | Web page to validate the records by ear | Path of the page |
+| `read_validation(am, file)` | Reads the decisions of the validation | Data frame |
+| `export_observation(am, min_confidence, min_detections, ...)` | Import CSV for Observation.org | Data frame |
+| `create_report(recorders, by_recorder, output, ...)` | PDF report (Quarto + Typst) of one or several recorders | Path of the PDF |
+
+The full help of each function is in R:
+[`?analyze_birdnet`](https://ajcanepa.github.io/AudiomothR/reference/analyze_birdnet.md),
+[`?export_observation`](https://ajcanepa.github.io/AudiomothR/reference/export_observation.md)…
+
+## 6. Location
+
+AudioMoth only writes the location in `CONFIG.TXT` when it was set in
+its app, and with **two decimals (~700 m)**. Therefore:
+
+1.  If `coordinates` are given, they are used (with a warning if they
+    are more than 10 km away from the `CONFIG.TXT`, and an error if
+    latitude and longitude look swapped).
+2.  Otherwise, the location of `CONFIG.TXT` is used (with a note about
+    its low precision).
+3.  If there is none either, it is asked for in the console in an
+    interactive session (with a map link to check it); otherwise there
+    is an error asking for `coordinates`.
+
+`coordinates` accepts what is copied from **Google Earth**, **Google
+Maps** or a **GPS**:
+
+| Format | Example |
+|----|----|
+| Decimal degrees (Google Maps / Earth) | `"41.123456, -3.123456"` |
+| Degrees, minutes and seconds | `"41°07'24.4\"N 3°07'24.4\"W"` |
+| Spanish hemisphere letters (O = west) | `"41°07'24.4\"N 3°07'24.4\"O"` |
+| Degrees and decimal minutes | `"41°07.407'N 3°07.407'W"` |
+| Hemisphere first (handheld GPS) | `"N41 07.407 W3 07.407"` |
+| Without symbols | `"41 07 24.4 N 3 07 24.4 W"` |
+| Google Earth placemark (KML) | `"<coordinates>-3.123456,41.123456,0</coordinates>"` |
+| Google Maps link | `"https://www.google.com/maps?q=41.123456,-3.123456"` |
+| Decimal comma | `"41,123456 -3,123456"` |
+| Numeric vector | `c(41.123456, -3.123456)` |
+
+Without hemisphere letters the **latitude goes first**. The precision
+(column `accuracy` of Observation.org) follows from the decimals
+written; it can be set with `read_audiomoth(precision_m = 10)`.
+
+## 7. Times
+
+AudioMoth records in **UTC** unless another zone was set in its app; the
+zone of each recording is read from its metadata. All local dates and
+times of the CSV files are in `time_zone` (by default `Europe/Madrid`,
+with daylight saving time; use `"Atlantic/Canary"` in the Canary
+Islands) and the column `utc_offset` keeps the offset of each one;
+`recording_start_utc` keeps the original UTC time.
+
+## 8. Criteria
+
+| Step | Criterion (default) | Argument |
+|----|----|----|
+| Analysis | Detections with confidence ≥ 0.10 are saved, only of the species expected at the site and week (BirdNET metadata model, threshold 0.03) or of an own list | `analyze_birdnet(min_confidence, location_filter, location_threshold, species_list)` |
+| Doubts | A detection has *no doubts* when BirdNET proposed no other species in the same 3 s window with confidence ≥ 0.1 | — |
+| Examples | Confidence **≥ 0.85** and **no doubts**; the ones with the highest confidence, at most one per recording | `extract_examples(min_confidence, no_doubts, n)` |
+| Validation | Records (species and day) with detections of confidence ≥ 0.5, from the least to the most plausible | `create_validation(min_confidence, min_detections)` |
+| Observation.org | One record per species and day; detections with confidence ≥ 0.80 and at least 2 that day, plus the records validated by ear | `export_observation(min_confidence, min_detections, no_doubts_only)` |
+
+BirdNET gives a **confidence score** (0-1), not a measured precision: a
+high value does not guarantee that the identification is right.
+
+## 9. Results
+
+In the `output` folder (asked for when not given; better outside the
+card, which is usually formatted for the next deployment, and **one per
+box**: it gathers all the cards of the box):
+
+| File | Contents |
+|----|----|
+| `AudioMoth_<ID>_deployments.csv` | The cards (deployments) of the box: dates, site, location and its source, folder read and original card (`card_folder`) |
+| `recordings/<first date>-<last date>/` | Copy of each card (only with `copy_to = TRUE`) |
+| `AudioMoth_<ID>_recordings.csv` | Inventory (all the cards): file, day, UTC and local time, duration, sample rate, battery, temperature, problems and state of the analysis |
+| `AudioMoth_<ID>_detections.csv` | All the detections: file, local date and time, start and end (s), species, confidence, `n_labels_window`, `other_confidence_max`, `no_doubts`, `location_prob`, coordinates |
+| `AudioMoth_<ID>_observation.csv` / `.json` | Import file for Observation.org and the criteria used |
+| `examples/<species>/*.wav, *.png, *.mp4` | Clip, spectrogram and video of each example |
+| `examples/AudioMoth_<ID>_examples.csv` | Index of the examples (relative paths) |
+| `validation/` | Validation page, clips and decisions (`AudioMoth_<ID>_validation.csv`) |
+| `report/` | Quarto folder of the report (`report.qmd`, data and figures) and the PDF |
+| `birdnet/<ID>_<key>/` | BirdNET results per recording, parameters, versions (`metadata.txt`), errors, probability of occurrence of the species and the own list of species used (`species_list.csv`); do not delete it |
+| `audio_48k/` | 48 kHz mono copies (only when needed); they can be deleted once the analysis is finished |
+| `.inventory_cache.rds` | Metadata of the WAV files already read, so that reading the card again is fast |
+
+## 10. Observation.org
+
+The CSV follows exactly the format of `observations-import-example.xlsx`
+(19 columns, UTF-8 without BOM, commas, dates `YYYY-MM-DD`, times
+`HH:MM`, decimal coordinates with a point), with these values:
+
+| Column | Value |
+|----|----|
+| `date` / `time` | Local date / time of the first detection of the day |
+| `scientific name` | Name of the bird species in Observation.org. BirdNET v2.4 labels (eBird/Clements) are translated into the IOC World Bird List v15.2 and then into the species list of Observation.org, which follows IOC with its own lumps and genera (e.g. *Corvus cornix* → *Corvus corone*, *Saxicola stejnegeri* → *Saxicola maurus*; the BirdNET name is kept in `notes`). Every bird of BirdNET v2.4 has a valid name of Observation.org (see `inst/extdata/taxonomy/README.md`). Classes that are not birds are left out; species split by IOC are translated according to the location when the rule is clear (e.g. *Cecropis daurica* → *Cecropis rufula* in Europe) and reported otherwise. Own equivalences with `equivalences = c("BirdNET name" = "Observation.org name")` |
+| `lat` / `lng` / `accuracy` | Location of the recorder and its precision (m, at most 1000) |
+| `number` | 1 |
+| `notes` | `"Identified with BirdNET <version>"` (`"ID mediante BirdNET <version>"` in Spanish), whether it was validated by ear, and the best detection (file, second and confidence) |
+| `is certain` | `True` for the records validated by ear, `False` for the rest |
+| `method` / `counting method` | `Oído` / `Sin especificar` (values of the Observation.org import example) |
+| `external reference` | `AudioMoth_<ID>_<YYYYMMDD>_<species>`, unique and stable |
+
+`method`, `counting_method` and `activity` are checked against the
+values that Observation.org accepts for birds. If the CSV is edited by
+hand (e.g. with a spreadsheet, keeping it comma separated), a new export
+does not overwrite it.
+
+## 11. Videos
+
+[`spectrogram_video()`](https://ajcanepa.github.io/AudiomothR/reference/spectrogram_video.md)
+draws the spectrogram once with R and ffmpeg animates it (about 1 s per
+video): MP4 H.264 + AAC, 1280×720, valid for any player and for social
+media.
+
+- `style = "cursor"`: the whole spectrogram with a moving line.
+- `style = "scroll"`: the spectrogram scrolls under a fixed line.
+
+Dashed white lines mark the 3 s window of the detection. Other settings:
+`fps`, `max_freq` (Hz, 12 000 by default), `db_range`, `width`,
+`height`, `window_s`.
+
+## 12. Approximate times
+
+Measured on a 12-core laptop with 1-min recordings at 48 kHz:
+
+| Step | Time |
+|----|----|
+| Inventory (`read_audiomoth`) | ~2 s for 1,700 recordings |
+| BirdNET (`analyze_birdnet`) | ~1 s per 1-min recording (a card of 1,700 recordings: ~30 min) |
+| Example (WAV + PNG + MP4) | ~1 s |
+| Validation page | ~0.5 s per record |
+| Observation.org | seconds |
+
+Recordings at 250 kHz take longer (they are first converted to 48 kHz).
+
+## 13. Troubleshooting
+
+| Message / symptom | Solution |
+|----|----|
+| `Cannot find ffmpeg` | Install ffmpeg (see Requirements) or set its path: `options(AudiomothR.ffmpeg = "C:/ffmpeg/bin/ffmpeg.exe")` |
+| `Cannot find Quarto` | Use RStudio or Positron (they include it), install it from <https://quarto.org> or set its path: `options(AudiomothR.quarto = "/path/to/quarto")` |
+| `The report needs Quarto 1.4 or later` | Update RStudio or Positron (they include Quarto), or install it from <https://quarto.org> |
+| The report or the vignettes fail with `namespace 'htmltools' ... is being loaded, but >= ... is required` (or another package) | An old package used by `rmarkdown`: `install.packages(c("knitr", "rmarkdown", "htmltools", "xfun"))` and restart R. [`check_requirements()`](https://ajcanepa.github.io/AudiomothR/reference/check_requirements.md) shows the problem |
+| `Cannot write in ...` | The card is write-protected: give another `output` folder |
+| `The results folder ... already holds the results of another AudioMoth` | Use one `output` folder per box; each box gathers its own cards |
+| The map of the report has no background | Install `maptiles`, `sf` and `terra`, and check the Internet connection |
+| `There is no CONFIG.TXT` | Choose the root folder of the card, not a daily folder (or give `coordinates` to read a copy without `CONFIG.TXT`) |
+| I cannot find the files (examples, spectrograms, videos, pages) | They are in the results folder (`am$output`); the message of each function gives the full path. A folder in [`tempdir()`](https://rdrr.io/r/base/tempfile.html) is deleted when R closes |
+| The validation page does not open in Firefox (“File not found”) on Ubuntu | Firefox (and Chromium) installed as a *snap* cannot open files in `/tmp`: open the page in the Viewer of RStudio or in another browser, or use a results folder outside `/tmp` |
+| The first run of BirdNET takes long | Normal: it installs Python and TensorFlow and downloads the model once (run [`setup_birdnet()`](https://ajcanepa.github.io/AudiomothR/reference/setup_birdnet.md) beforehand) |
+| `Cannot download the BirdNET v2.4 model` | Check the connection and run [`setup_birdnet()`](https://ajcanepa.github.io/AudiomothR/reference/setup_birdnet.md) again, or download the zip shown in the message and unzip it into the model folder (see Installation) |
+| `Give the results folder with output` | In scripts (`Rscript`) the results folder must be given: `output = "~/AudiomothR_results/box_01"` |
+| Species from other continents | Check that `location_filter = TRUE` and that the coordinates are right (latitude first; west negative) |
+| A species present at the site is never detected | The location filter may leave it out (nocturnal, scarce species, little visited areas): lower `location_threshold` or use a `species_list` (see “Which species BirdNET looks for”) |
+| `... not species of BirdNET v2.4 and are ignored` | Names of the species list that BirdNET cannot detect (or typos); check the list with [`read_species_list()`](https://ajcanepa.github.io/AudiomothR/reference/read_species_list.md) |
+| `GBIF does not answer` | [`gbif_species_list()`](https://ajcanepa.github.io/AudiomothR/reference/gbif_species_list.md) needs an Internet connection; try again later |
+| Examples or validation without audio after formatting the card | Without `copy_to`, they need the card connected at the same path; read the cards with `copy_to` to keep a copy on the disk |
+| `0 of the 3 requested examples meet the criteria` | See [`species_summary()`](https://ajcanepa.github.io/AudiomothR/reference/species_summary.md) or lower `min_confidence` / use `no_doubts = FALSE` |
+| A name “without a bird species in Observation.org” (only with own names) | Add `equivalences = c("BirdNET name" = "Observation.org name")` in [`export_observation()`](https://ajcanepa.github.io/AudiomothR/reference/export_observation.md) |
+| Messages | `options(AudiomothR.quiet = TRUE)` hides the informative messages (warnings are always shown) |
+
+## 14. Origin of the code, data and licences
+
+- Reading of `CONFIG.TXT` and WAV files, and the first taxonomic
+  equivalences, adapted from **Biosonora**. Export criteria and notes
+  from the reports of the acoustic box
+  (`Informes_Quarto_Caja_Acustica`).
+- AudiomothR: GPL (≥ 3). birdnetR: MIT. **BirdNET models: CC BY-NC-SA
+  4.0 (non-commercial use only).** IOC World Bird List: CC BY 3.0. See
+  `inst/COPYRIGHTS` and `inst/extdata/taxonomy/README.md`; the taxonomy
+  tables are rebuilt with `data-raw/build_taxonomy.R`.
+
+## 15. Example data and vignettes
+
+The package includes an example AudioMoth card in
+`inst/extdata/example/card/`
+(`system.file("extdata", "example", "card", package = "AudiomothR")`): a
+`CONFIG.TXT` file and two days of real recordings (16 WAV files),
+**anonymised**: the device ID and the location are fictitious, and most
+WAV files were cut to 0.05 s (10 of the 16 appear with
+`problem: "duration < 3 s"`, on purpose); 6 files keep ~7 s of real
+song. `inst/extdata/example/birdnet_detections.csv` has the detections
+that BirdNET v2.4 returned for this card, `species_list.csv` is a
+template of an own list of species, and `gbif_species_list.csv` is the
+list of the species observed in GBIF around the example site (made with
+[`gbif_species_list()`](https://ajcanepa.github.io/AudiomothR/reference/gbif_species_list.md)
+on 2026-11-10).
+
+Three vignettes, to be read in order, go through everything with this
+card:
+
+1.  [`vignette("audiomothr-1-workflow")`](https://ajcanepa.github.io/AudiomothR/articles/audiomothr-1-workflow.md),
+    **Getting started: the complete workflow**: installation and
+    requirements, every step from the card to Observation.org and the
+    PDF report, with what each one produces, the validation by ear and
+    how to solve the usual problems.
+2.  [`vignette("audiomothr-2-species")`](https://ajcanepa.github.io/AudiomothR/articles/audiomothr-2-species.md),
+    **Which species BirdNET looks for**: the location filter, own lists
+    of species (also those of BirdNET-Analyzer) and lists built from
+    GBIF.
+3.  [`vignette("audiomothr-3-boxes")`](https://ajcanepa.github.io/AudiomothR/articles/audiomothr-3-boxes.md),
+    **Several cards, several boxes and reports**: the next cards of a
+    box, a box that is moved, coming back another day and reports of
+    several boxes.
+
+With
+`remotes::install_github("ajcanepa/AudiomothR", build_vignettes = TRUE)`
+they can be read with `browseVignettes("AudiomothR")`.
+
+> **Before uploading the CSV to Observation.org, check it.** BirdNET
+> identifications are automatic and sometimes wrong: validate at least
+> the unusual species or those with low confidence with
+> [`create_validation()`](https://ajcanepa.github.io/AudiomothR/reference/create_validation.md).
+
+## 16. Tests
+
+``` r
+
+devtools::test()   # more than 350 checks; conversion, video and report tests are
+                   # skipped without ffmpeg, without Quarto or on CRAN
+```
+
+BirdNET is replaced by a mock in the tests, so they run without Python.
+
+## 17. How to cite
+
+If you use AudiomothR, cite the version you used
+(`citation("AudiomothR")`):
+
+> Canepa-Oneto A, de la Fuente Gamero P, Barbero-Aparicio JA, Guerra
+> Carande J, Fernández-Ruiz C, Olivares A, Marticorena-Sánchez R (2026).
+> *AudiomothR: Acoustic Processing of AudioMoth Recordings with
+> BirdNET*. R package version 0.4.0.
+> <https://doi.org/10.5281/zenodo.23646408>
+
+Each version published on GitHub is archived in Zenodo with its own DOI;
+the DOI above always resolves to the latest version.
+
+## 18. Contributing
+
+Questions, problems and ideas are welcome as
+[issues](https://github.com/ajcanepa/AudiomothR/issues), in English or
+Spanish; see
+[CONTRIBUTING](https://ajcanepa.github.io/AudiomothR/CONTRIBUTING.md)
+for what to include and how to propose changes. Please note that the
+AudiomothR project is released with a [Contributor Code of
+Conduct](https://ajcanepa.github.io/AudiomothR/CODE_OF_CONDUCT.md). By
+contributing to this project, you agree to abide by its terms.
