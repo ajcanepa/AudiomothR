@@ -18,18 +18,32 @@ authors:
   - given-names: Antonio
     family-names: Canepa-Oneto
     email: ajcanepa@gmail.com
+    orcid: "https://orcid.org/0000-0002-0608-2743"
     affiliation: "Departamento de Ingeniería Informática, Universidad de Burgos"
   - given-names: Patricia
     family-names: de la Fuente Gamero
+    orcid: "https://orcid.org/0000-0002-6048-1534"
+    affiliation: "International Research Center in Critical Raw Materials for Advanced Industrial Technologies (ICCRAM), Universidad de Burgos"
   - given-names: José Antonio
     family-names: Barbero-Aparicio
+    orcid: "https://orcid.org/0000-0002-3269-0806"
+    affiliation: "Departamento de Ingeniería Informática, Universidad de Burgos"
+  - given-names: Julia
+    family-names: Guerra Carande
+    orcid: "https://orcid.org/0000-0002-7398-3402"
+    affiliation: "Departamento de Anatomía, Biología Celular y Zoología, Universidad de Extremadura"
   - given-names: Claudia
     family-names: Fernández-Ruiz
+    orcid: "https://orcid.org/0009-0005-6450-3605"
     affiliation: "Departamento de Ingeniería Informática, Universidad de Burgos"
   - given-names: Alicia
     family-names: Olivares
+    orcid: "https://orcid.org/0000-0002-3378-197X"
+    affiliation: "Departamento de Ingeniería Informática, Universidad de Burgos"
   - given-names: Raúl
     family-names: Marticorena-Sánchez
+    orcid: "https://orcid.org/0000-0002-2633-635X"
+    affiliation: "Departamento de Ingeniería Informática, Universidad de Burgos"
 keywords:
   - AudioMoth
   - BirdNET

@@ -466,7 +466,7 @@ BirdNET is replaced by a mock in the tests, so they run without Python.
 
 If you use AudiomothR, cite the version you used (`citation("AudiomothR")`):
 
-> Canepa-Oneto A, de la Fuente Gamero P, Barbero-Aparicio JA,
+> Canepa-Oneto A, de la Fuente Gamero P, Barbero-Aparicio JA, Guerra Carande J,
 > Fernández-Ruiz C, Olivares A, Marticorena-Sánchez R (2026). *AudiomothR:
 > Acoustic Processing of AudioMoth Recordings with BirdNET*. R package
 > version 0.4.0. <https://doi.org/10.5281/zenodo.23646408>

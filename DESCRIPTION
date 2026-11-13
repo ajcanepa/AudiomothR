@@ -3,13 +3,20 @@ Title: Acoustic Processing of 'AudioMoth' Recordings with 'BirdNET'
 Version: 0.4.0
 Authors@R: c(
     person("Antonio", "Canepa-Oneto", role = c("aut", "cre"),
-           email = "ajcanepa@gmail.com"),
-    person("Patricia", "de la Fuente Gamero", role = "aut"),
-    person("José Antonio", "Barbero-Aparicio", role = "aut"),
-    person("Claudia", "Fernández-Ruiz", role = "aut"),
-    person("Alicia", "Olivares", role = "aut"),
-    person("Raúl", "Marticorena-Sánchez", role = "aut"),
-    person("Julia", "Guerra Carande", role = "rev")
+           email = "ajcanepa@gmail.com",
+           comment = c(ORCID = "0000-0002-0608-2743")),
+    person("Patricia", "de la Fuente Gamero", role = "aut",
+           comment = c(ORCID = "0000-0002-6048-1534")),
+    person("José Antonio", "Barbero-Aparicio", role = "aut",
+           comment = c(ORCID = "0000-0002-3269-0806")),
+    person("Julia", "Guerra Carande", role = "aut",
+           comment = c(ORCID = "0000-0002-7398-3402")),
+    person("Claudia", "Fernández-Ruiz", role = "aut",
+           comment = c(ORCID = "0009-0005-6450-3605")),
+    person("Alicia", "Olivares", role = "aut",
+           comment = c(ORCID = "0000-0002-3378-197X")),
+    person("Raúl", "Marticorena-Sánchez", role = "aut",
+           comment = c(ORCID = "0000-0002-2633-635X"))
   )
 Description: Reads the cards of 'AudioMoth' recorders (Hill et al. 2018)
     <doi:10.1111/2041-210X.12955> ('CONFIG.TXT' file and daily folders),

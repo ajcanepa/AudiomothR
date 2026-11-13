@@ -5,6 +5,7 @@ author:
   - Antonio Canepa-Oneto
   - Patricia de la Fuente Gamero
   - José Antonio Barbero-Aparicio
+  - Julia Guerra Carande
   - Claudia Fernández-Ruiz
   - Alicia Olivares
   - Raúl Marticorena-Sánchez

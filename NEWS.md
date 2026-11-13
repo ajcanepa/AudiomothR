@@ -54,8 +54,8 @@
 ## Other changes
 
 * `jsonlite` is a new dependency (already installed with `reticulate`).
-* Julia Guerra Carande is credited as reviewer (`rev` in `DESCRIPTION`) for
-  her review of the package following the rOpenSci reviewer template.
+* Julia Guerra Carande joins the authors. The ORCID of the authors is now in
+  `DESCRIPTION` and `CITATION.cff`, with their affiliations.
 
 # AudiomothR 0.3.0
 

@@ -17,21 +17,17 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Antonio Canepa-Oneto \email{ajcanepa@gmail.com}
+\strong{Maintainer}: Antonio Canepa-Oneto \email{ajcanepa@gmail.com} (\href{https://orcid.org/0000-0002-0608-2743}{ORCID})
 
 Authors:
 \itemize{
-  \item Antonio Canepa-Oneto \email{ajcanepa@gmail.com}
-  \item Patricia de la Fuente Gamero
-  \item José Antonio Barbero-Aparicio
-  \item Claudia Fernández-Ruiz
-  \item Alicia Olivares
-  \item Raúl Marticorena-Sánchez
-}
-
-Other contributors:
-\itemize{
-  \item Julia Guerra Carande [reviewer]
+  \item Antonio Canepa-Oneto \email{ajcanepa@gmail.com} (\href{https://orcid.org/0000-0002-0608-2743}{ORCID})
+  \item Patricia de la Fuente Gamero (\href{https://orcid.org/0000-0002-6048-1534}{ORCID})
+  \item José Antonio Barbero-Aparicio (\href{https://orcid.org/0000-0002-3269-0806}{ORCID})
+  \item Julia Guerra Carande (\href{https://orcid.org/0000-0002-7398-3402}{ORCID})
+  \item Claudia Fernández-Ruiz (\href{https://orcid.org/0009-0005-6450-3605}{ORCID})
+  \item Alicia Olivares (\href{https://orcid.org/0000-0002-3378-197X}{ORCID})
+  \item Raúl Marticorena-Sánchez (\href{https://orcid.org/0000-0002-2633-635X}{ORCID})
 }
 
 }
