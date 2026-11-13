@@ -29,5 +29,10 @@ Authors:
   \item Raúl Marticorena-Sánchez
 }
 
+Other contributors:
+\itemize{
+  \item Julia Guerra Carande [reviewer]
+}
+
 }
 \keyword{internal}

@@ -54,6 +54,8 @@
 ## Other changes
 
 * `jsonlite` is a new dependency (already installed with `reticulate`).
+* Julia Guerra Carande is credited as reviewer (`rev` in `DESCRIPTION`) for
+  her review of the package following the rOpenSci reviewer template.
 
 # AudiomothR 0.3.0
 
