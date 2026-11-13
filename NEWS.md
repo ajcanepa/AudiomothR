@@ -36,6 +36,9 @@ Changes after the review of Julia Guerra Carande (rOpenSci reviewer template).
 * Web site of the package, built with pkgdown:
   <https://ajcanepa.github.io/AudiomothR/>. The vignettes can be read there
   without building them when installing.
+* Logo of the package (`man/figures/logo.png`, made with `data-raw/logo.R`):
+  a songbird singing, its song drawn as the spectrogram of the Cetti's
+  warbler of the example card.
 * Vignette 1 and the README: where to find the files, and the validation
   page that does not open in Firefox on Ubuntu, in the usual problems.
 

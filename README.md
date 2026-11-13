@@ -1,4 +1,4 @@
-# AudiomothR
+# AudiomothR <img src="man/figures/logo.png" align="right" height="139" alt="AudiomothR logo: a songbird singing, its song drawn as a spectrogram" />
 
 [![R-CMD-check](https://github.com/ajcanepa/AudiomothR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ajcanepa/AudiomothR/actions/workflows/R-CMD-check.yaml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23646408.svg)](https://doi.org/10.5281/zenodo.23646408)
