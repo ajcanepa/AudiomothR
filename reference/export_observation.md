@@ -148,12 +148,12 @@ am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
 #> • 10 with problems: duration < 3 s
 #> • Battery: 4.9 V → 4.5 V
 #> • Temperature: 11.7 to 34.4 °C
-#> • Results in: /tmp/RtmpoqZwSo/file22a71f6d81fe
+#> • Results in: /tmp/RtmpXUCCMs/file233765ab0369
 am$detections <- read_detections(system.file("extdata", "example",
   "birdnet_detections.csv", package = "AudiomothR"))
 obs <- export_observation(am, min_confidence = 0.5, min_detections = 1)
 #> ✔ 3 records (3 species) for Observation.org in
-#>   /tmp/RtmpoqZwSo/file22a71f6d81fe/AudioMoth_FACADE0012345678_observation.csv.
+#>   /tmp/RtmpXUCCMs/file233765ab0369/AudioMoth_FACADE0012345678_observation.csv.
 #> ℹ Criteria: confidence ≥ 0.5, ≥ 1 detection per species and day.
 obs[, c("date", "time", "scientific name", "is certain")]
 #>         date  time         scientific name is certain

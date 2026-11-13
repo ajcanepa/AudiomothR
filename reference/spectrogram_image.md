@@ -60,5 +60,5 @@ t <- seq(0, 2, length.out = 2 * 48000)
 tuneR::writeWave(tuneR::Wave(round(8000 * sin(2 * pi * (2000 + 1000 * t) * t)),
                              samp.rate = 48000, bit = 16), wav)
 spectrogram_image(wav, tempfile(fileext = ".png"), title = "Chirp")
-#> ✔ Spectrogram in /tmp/RtmpoqZwSo/file22a7495746b6.png.
+#> ✔ Spectrogram in /tmp/RtmpXUCCMs/file233721904aef.png.
 ```

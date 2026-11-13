@@ -121,10 +121,10 @@ am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
 #> • 10 with problems: duration < 3 s
 #> • Battery: 4.9 V → 4.5 V
 #> • Temperature: 11.7 to 34.4 °C
-#> • Results in: /tmp/RtmpoqZwSo/file22a76057792a
+#> • Results in: /tmp/RtmpXUCCMs/file23378000f1b
 am$detections <- read_detections(system.file("extdata", "example",
   "birdnet_detections.csv", package = "AudiomothR"))
 extract_examples(am, "Cettia cetti", n = 1, min_confidence = 0.5, video = FALSE)
-#> ✔ 1 example of 1 species in /tmp/RtmpoqZwSo/file22a76057792a/examples.
+#> ✔ 1 example of 1 species in /tmp/RtmpXUCCMs/file23378000f1b/examples.
 # }
 ```

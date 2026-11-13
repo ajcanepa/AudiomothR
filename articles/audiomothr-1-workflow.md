@@ -252,12 +252,12 @@ am <- read_audiomoth(
   output = output,                       # results folder of this box
   copy_to = TRUE                         # copy the card to the disk and work on the copy
 )
-#> ℹ /tmp/RtmpAHj7Ff/AudiomothR_results/box_01 is in the temporary folder of R: it
+#> ℹ /tmp/RtmpISrST2/AudiomothR_results/box_01 is in the temporary folder of R: it
 #>   is deleted when R closes.
 #>   For your own recordings give a folder of your own, e.g. `output =
 #>   "~/AudiomothR_results/box_01"`.
 #> Copying the card to
-#> /tmp/RtmpAHj7Ff/AudiomothR_results/box_01/recordings/20261007-20261015: 17
+#> /tmp/RtmpISrST2/AudiomothR_results/box_01/recordings/20261007-20261015: 17
 #> files (4 MB).
 #> ✔ Card copied (17 files): the analysis uses the copy, and the card can be
 #>   formatted once you have checked it.
@@ -269,7 +269,7 @@ am <- read_audiomoth(
 #> (copied)
 #> 
 #> • Copy of the card (used from now on):
-#> /tmp/RtmpAHj7Ff/AudiomothR_results/box_01/recordings/20261007-20261015
+#> /tmp/RtmpISrST2/AudiomothR_results/box_01/recordings/20261007-20261015
 #> 
 #> • Site of this card: Fictitious example site (41, -3; ±698 m; source: argument)
 #> 
@@ -285,7 +285,7 @@ am <- read_audiomoth(
 #> 
 #> • Temperature: 11.7 to 34.4 °C
 #> 
-#> • Results in: /tmp/RtmpAHj7Ff/AudiomothR_results/box_01
+#> • Results in: /tmp/RtmpISrST2/AudiomothR_results/box_01
 ```
 
 > **This vignette saves everything in the temporary folder of R**
@@ -336,7 +336,7 @@ names(am)
 #>  [1] "folder"      "card_folder" "config"      "location"    "site"       
 #>  [6] "deployment"  "time_zone"   "output"      "recordings"  "deployments"
 am$folder          # the copy of the card, used from now on
-#> [1] "/tmp/RtmpAHj7Ff/AudiomothR_results/box_01/recordings/20261007-20261015"
+#> [1] "/tmp/RtmpISrST2/AudiomothR_results/box_01/recordings/20261007-20261015"
 am$card_folder     # the original card
 #> [1] "/home/runner/work/_temp/Library/AudiomothR/extdata/example/card"
 ```
@@ -659,7 +659,7 @@ examples <- extract_examples(am, species, min_confidence = 0.5, margin_s = 0.5)
 #> Creating examples ■■■■■■■■■■■■■■■■                  50% | ETA:  3s
 #> Creating examples ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■  100% | ETA:  0s
 #> ✔ 2 examples of 2 species in
-#>   /tmp/RtmpAHj7Ff/AudiomothR_results/box_01/examples.
+#>   /tmp/RtmpISrST2/AudiomothR_results/box_01/examples.
 basename(c(examples$wav, examples$png, examples$mp4))
 #> [1] "Cettia_cetti_01_conf82_20261007_091547.wav"           
 #> [2] "Troglodytes_troglodytes_01_conf63_20261007_100504.wav"
@@ -697,7 +697,7 @@ of the card, with
 wav <- am$recordings$path[am$recordings$valid][1]
 png <- spectrogram_image(wav, file.path(tempdir(), "my_spectrogram.png"),
                          title = "My first spectrogram", max_freq = 10000)
-#> ✔ Spectrogram in /tmp/RtmpAHj7Ff/my_spectrogram.png.
+#> ✔ Spectrogram in /tmp/RtmpISrST2/my_spectrogram.png.
 file.exists(png)
 #> [1] TRUE
 ```
@@ -717,7 +717,7 @@ checked by ear on a web page:
 
 page <- create_validation(am, min_confidence = 0.5, open = FALSE)
 #> ✔ Validation page with 3 records in
-#>   /tmp/RtmpAHj7Ff/AudiomothR_results/box_01/validation/AudioMoth_FACADE0012345678_validation.html.
+#>   /tmp/RtmpISrST2/AudiomothR_results/box_01/validation/AudioMoth_FACADE0012345678_validation.html.
 #> ℹ Listen and decide, press Download decisions (CSV) and run
 #>   `export_observation(am)`: the decisions are applied automatically.
 ```
@@ -786,7 +786,7 @@ found):
 
 read_validation(am)[, c("date", "scientific_name", "decision", "new_name")]
 #> ℹ Decisions read from
-#>   /tmp/RtmpAHj7Ff/AudiomothR_results/box_01/validation/AudioMoth_FACADE0012345678_validation.csv.
+#>   /tmp/RtmpISrST2/AudiomothR_results/box_01/validation/AudioMoth_FACADE0012345678_validation.csv.
 #>         date         scientific_name decision       new_name
 #> 1 2026-10-07 Troglodytes troglodytes    valid           <NA>
 #> 2 2026-10-07       Motacilla cinerea     <NA> Motacilla alba
@@ -804,10 +804,10 @@ taken.
 
 obs <- export_observation(am)
 #> ℹ Validation applied
-#>   (/tmp/RtmpAHj7Ff/AudiomothR_results/box_01/validation/AudioMoth_FACADE0012345678_validation.csv):
+#>   (/tmp/RtmpISrST2/AudiomothR_results/box_01/validation/AudioMoth_FACADE0012345678_validation.csv):
 #>   1 valid, 0 not valid, 1 relabelled.
 #> ✔ 2 records (2 species) for Observation.org in
-#>   /tmp/RtmpAHj7Ff/AudiomothR_results/box_01/AudioMoth_FACADE0012345678_observation.csv.
+#>   /tmp/RtmpISrST2/AudiomothR_results/box_01/AudioMoth_FACADE0012345678_observation.csv.
 #> ℹ Criteria: confidence ≥ 0.8, ≥ 2 detections per species and day; records
 #>   validated by ear always included.
 obs[, c("date", "time", "scientific name", "is certain", "notes")]
@@ -833,7 +833,7 @@ The criteria can be changed, e.g. for this card:
 obs <- export_observation(am, min_confidence = 0.5, min_detections = 1, validation = FALSE,
                           overwrite = TRUE)
 #> ✔ 3 records (3 species) for Observation.org in
-#>   /tmp/RtmpAHj7Ff/AudiomothR_results/box_01/AudioMoth_FACADE0012345678_observation.csv.
+#>   /tmp/RtmpISrST2/AudiomothR_results/box_01/AudioMoth_FACADE0012345678_observation.csv.
 #> ℹ Criteria: confidence ≥ 0.5, ≥ 1 detection per species and day.
 obs[, c("date", "time", "scientific name", "is certain")]
 #>         date  time         scientific name is certain

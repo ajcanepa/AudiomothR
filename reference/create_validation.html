@@ -133,7 +133,7 @@ the decisions already saved in the validation folder.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"example"</span>, <span class="st">"card"</span>, package <span class="op">=</span> <span class="st">"AudiomothR"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">am</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_audiomoth.html">read_audiomoth</a></span><span class="op">(</span><span class="va">card</span>, coordinates <span class="op">=</span> <span class="st">"41.00, -3.00"</span>, output <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> <span style="color: #0000BB;">/tmp/RtmpoqZwSo/file22a72f5ed2bd</span> is in the temporary folder of R: it is</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> <span style="color: #0000BB;">/tmp/RtmpXUCCMs/file233720ae1340</span> is in the temporary folder of R: it is</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   deleted when R closes.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   For your own recordings give a folder of your own, e.g. `output =</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   "~/AudiomothR_results/box_01"`.</span>
@@ -148,14 +148,14 @@ the decisions already saved in the validation folder.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> • <span style="font-weight: bold;">10</span> with problems: duration &lt; 3 s</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> • Battery: 4.9 V → 4.5 V</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> • Temperature: 11.7 to 34.4 °C</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> • Results in: <span style="color: #0000BB;">/tmp/RtmpoqZwSo/file22a72f5ed2bd</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> • Results in: <span style="color: #0000BB;">/tmp/RtmpXUCCMs/file233720ae1340</span></span>
 <span class="r-in"><span><span class="va">am</span><span class="op">$</span><span class="va">detections</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_detections.html">read_detections</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"example"</span>,</span></span>
 <span class="r-in"><span>  <span class="st">"birdnet_detections.csv"</span>, package <span class="op">=</span> <span class="st">"AudiomothR"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">page</span> <span class="op">&lt;-</span> <span class="fu">create_validation</span><span class="op">(</span><span class="va">am</span>, open <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Preparing the audio clips <span style="color: #00BB00;">■■■■■■■■■■■                     </span>  33% | ETA:  3s</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Preparing the audio clips <span style="color: #00BB00;">■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ </span> 100% | ETA:  0s</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Validation page with 3 records in</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   <span style="color: #0000BB;">/tmp/RtmpoqZwSo/file22a72f5ed2bd/validation/AudioMoth_FACADE0012345678_validation.html</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   <span style="color: #0000BB;">/tmp/RtmpXUCCMs/file233720ae1340/validation/AudioMoth_FACADE0012345678_validation.html</span>.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Listen and decide, press <span style="font-weight: bold;">Download decisions (CSV)</span> and run</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   `export_observation(am)`: the decisions are applied automatically.</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>

@@ -187,7 +187,7 @@ it must be given.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> • <span style="font-weight: bold;">10</span> with problems: duration &lt; 3 s</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> • Battery: 4.9 V → 4.5 V</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> • Temperature: 11.7 to 34.4 °C</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> • Results in: <span style="color: #0000BB;">/tmp/RtmpoqZwSo/file22a77970a53a</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> • Results in: <span style="color: #0000BB;">/tmp/RtmpXUCCMs/file23376c5b7946</span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">am</span><span class="op">$</span><span class="va">recordings</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"file"</span>, <span class="st">"start_local"</span>, <span class="st">"duration_s"</span>, <span class="st">"valid"</span>, <span class="st">"problem"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                   file         start_local duration_s valid</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 FACADE0012345678_20261007_041500.WAV 2026-10-07 06:15:00       0.05 FALSE</span>
@@ -208,7 +208,7 @@ it must be given.</p>
 <span class="r-in"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">am</span> <span class="op">&lt;-</span> <span class="fu">read_audiomoth</span><span class="op">(</span><span class="va">card</span>, coordinates <span class="op">=</span> <span class="st">"41.00, -3.00"</span>, output <span class="op">=</span> <span class="va">out</span>, copy_to <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Copying the card to</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">/tmp/RtmpoqZwSo/file22a710f2777b/recordings/20261007-20261015</span>: 17 files (4 MB).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">/tmp/RtmpXUCCMs/file233764ab2a8d/recordings/20261007-20261015</span>: 17 files (4 MB).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Card copied (17 files): the analysis uses the copy, and the card can be</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   formatted once you have checked it.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
@@ -216,7 +216,7 @@ it must be given.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> • Card: <span style="color: #0000BB;">/home/runner/work/_temp/Library/AudiomothR/extdata/example/card</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> (copied)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> • Copy of the card (used from now on):</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">/tmp/RtmpoqZwSo/file22a710f2777b/recordings/20261007-20261015</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">/tmp/RtmpXUCCMs/file233764ab2a8d/recordings/20261007-20261015</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> • Site of this card: AudioMoth FACADE0012345678 (41, -3; ±698 m; source:</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> argument)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> • Map: <span style="color: #0000BB; font-style: italic;">&lt;https://www.openstreetmap.org/?mlat=41&amp;mlon=-3#map=15/41/-3&gt;</span></span>
@@ -225,9 +225,9 @@ it must be given.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> • <span style="font-weight: bold;">10</span> with problems: duration &lt; 3 s</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> • Battery: 4.9 V → 4.5 V</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> • Temperature: 11.7 to 34.4 °C</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> • Results in: <span style="color: #0000BB;">/tmp/RtmpoqZwSo/file22a710f2777b</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> • Results in: <span style="color: #0000BB;">/tmp/RtmpXUCCMs/file233764ab2a8d</span></span>
 <span class="r-in"><span><span class="va">am</span><span class="op">$</span><span class="va">folder</span>   <span class="co"># the copy: &lt;output&gt;/recordings/20261007-20261015</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpoqZwSo/file22a710f2777b/recordings/20261007-20261015"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "/tmp/RtmpXUCCMs/file233764ab2a8d/recordings/20261007-20261015"</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
