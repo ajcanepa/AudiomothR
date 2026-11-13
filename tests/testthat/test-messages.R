@@ -2,9 +2,14 @@ test_that("a results folder in tempdir() is noted once per session", {
   rm(list = ls(notes_shown), envir = notes_shown)
   op <- options(AudiomothR.quiet = FALSE)
   on.exit({ options(op); rm(list = ls(notes_shown), envir = notes_shown) }, add = TRUE)
-  out <- normalizePath(file.path(tempdir(), "results_box"), mustWork = FALSE)
+  # The folder as the user writes it and as read_audiomoth() normalises it
+  # once it exists (they differ on macOS and Windows)
+  out <- file.path(tempdir(), "results_box")
+  dir.create(out, showWarnings = FALSE)
   expect_message(expect_true(note_temporary_output(out)), "temporary folder of R")
   expect_false(note_temporary_output(out))
+  rm(list = ls(notes_shown), envir = notes_shown)
+  expect_message(expect_true(note_temporary_output(normalizePath(out))), "temporary folder of R")
   rm(list = ls(notes_shown), envir = notes_shown)
   elsewhere <- if (.Platform$OS.type == "windows") "C:/AudiomothR_results/box_01" else "/srv/AudiomothR_results/box_01"
   expect_false(note_temporary_output(elsewhere))

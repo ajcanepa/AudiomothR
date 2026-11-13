@@ -169,8 +169,11 @@ notes_shown <- new.env(parent = emptyenv())
 #' @noRd
 note_temporary_output <- function(output) {
   if (isTRUE(notes_shown$temporary)) return(invisible(FALSE))
-  temp <- normalizePath(tempdir(), mustWork = FALSE)
-  if (!path_under(output, temp)) return(invisible(FALSE))
+  # Both forms of the temporary folder: /var and /private/var on macOS, short
+  # names such as RUNNER~1 on Windows (normalizePath() only gives the real
+  # one for folders that exist)
+  temp <- unique(c(tempdir(), normalizePath(tempdir(), mustWork = FALSE)))
+  if (!any(vapply(temp, function(t) path_under(output, t), logical(1)))) return(invisible(FALSE))
   notes_shown$temporary <- TRUE
   inform(c("i" = "{.file {output}} is in the temporary folder of R: it is deleted when R closes.",
            " " = "For your own recordings give a folder of your own, e.g. {.code output = \"~/AudiomothR_results/box_01\"}."))
