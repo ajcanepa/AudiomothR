@@ -93,7 +93,7 @@ the decisions already saved in the validation folder.
 # \donttest{
 card <- system.file("extdata", "example", "card", package = "AudiomothR")
 am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
-#> ℹ /tmp/RtmpXUCCMs/file233720ae1340 is in the temporary folder of R: it is
+#> ℹ /tmp/RtmpQ97hCs/file22e560a011c0 is in the temporary folder of R: it is
 #>   deleted when R closes.
 #>   For your own recordings give a folder of your own, e.g. `output =
 #>   "~/AudiomothR_results/box_01"`.
@@ -108,14 +108,14 @@ am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
 #> • 10 with problems: duration < 3 s
 #> • Battery: 4.9 V → 4.5 V
 #> • Temperature: 11.7 to 34.4 °C
-#> • Results in: /tmp/RtmpXUCCMs/file233720ae1340
+#> • Results in: /tmp/RtmpQ97hCs/file22e560a011c0
 am$detections <- read_detections(system.file("extdata", "example",
   "birdnet_detections.csv", package = "AudiomothR"))
 page <- create_validation(am, open = FALSE)
 #> Preparing the audio clips ■■■■■■■■■■■                       33% | ETA:  3s
 #> Preparing the audio clips ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■  100% | ETA:  0s
 #> ✔ Validation page with 3 records in
-#>   /tmp/RtmpXUCCMs/file233720ae1340/validation/AudioMoth_FACADE0012345678_validation.html.
+#>   /tmp/RtmpQ97hCs/file22e560a011c0/validation/AudioMoth_FACADE0012345678_validation.html.
 #> ℹ Listen and decide, press Download decisions (CSV) and run
 #>   `export_observation(am)`: the decisions are applied automatically.
 # }

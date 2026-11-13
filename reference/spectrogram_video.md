@@ -82,5 +82,5 @@ t <- seq(0, 2, length.out = 2 * 48000)
 tuneR::writeWave(tuneR::Wave(round(8000 * sin(2 * pi * (2000 + 1000 * t) * t)),
                              samp.rate = 48000, bit = 16), wav)
 spectrogram_video(wav, tempfile(fileext = ".mp4"), title = "Chirp")
-#> ✔ Video in /tmp/RtmpXUCCMs/file2337517b6dc2.mp4.
+#> ✔ Video in /tmp/RtmpQ97hCs/file22e5162b8a1e.mp4.
 ```

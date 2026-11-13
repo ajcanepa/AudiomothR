@@ -6,6 +6,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Acoustic Processing of AudioMoth Recordings with BirdNET • AudiomothR</title>
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" sizes="any" href="favicon.ico">
+<link rel="manifest" href="site.webmanifest">
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
@@ -13,6 +18,7 @@
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Acoustic Processing of AudioMoth Recordings with BirdNET">
 <meta name="description" content="Reads the cards of AudioMoth recorders (Hill et al. 2018) &lt;doi:10.1111/2041-210X.12955&gt; (CONFIG.TXT file and daily folders), optionally copies them to the disk, prepares the audio and analyses it with BirdNET (Kahl et al. 2021) &lt;doi:10.1016/j.ecoinf.2021.101236&gt; through birdnetR, with the species expected at the site or an own list of species (which can be built from the observations published in GBIF around the recorder). Saves the detections as CSV files, extracts high-confidence examples of the chosen species with their audio and a video of the spectrogram, creates a web page to validate the records by ear, and converts the detections into the import format of Observation.org, translating the species names into the IOC World Bird List. It also creates a PDF report with Quarto of one or several recorders, with a map, the state of the recordings and the detected species.">
 <meta property="og:description" content="Reads the cards of AudioMoth recorders (Hill et al. 2018) &lt;doi:10.1111/2041-210X.12955&gt; (CONFIG.TXT file and daily folders), optionally copies them to the disk, prepares the audio and analyses it with BirdNET (Kahl et al. 2021) &lt;doi:10.1016/j.ecoinf.2021.101236&gt; through birdnetR, with the species expected at the site or an own list of species (which can be built from the observations published in GBIF around the recorder). Saves the detections as CSV files, extracts high-confidence examples of the chosen species with their audio and a video of the spectrogram, creates a web page to validate the records by ear, and converts the detections into the import format of Observation.org, translating the species names into the IOC World Bird List. It also creates a PDF report with Quarto of one or several recorders, with a map, the state of the recordings and the detected species.">
+<meta property="og:image" content="https://ajcanepa.github.io/AudiomothR/logo.png">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -55,8 +61,10 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
-<div class="page-header"><h1 id="audiomothr">AudiomothR<a class="anchor" aria-label="anchor" href="#audiomothr"></a>
-</h1></div>
+<div class="page-header">
+<img src="logo.png" class="logo" alt=""><h1 id="audiomothr-">AudiomothR <a class="anchor" aria-label="anchor" href="#audiomothr-"></a>
+</h1>
+</div>
 <p><a href="https://github.com/ajcanepa/AudiomothR/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/ajcanepa/AudiomothR/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://doi.org/10.5281/zenodo.23646408" class="external-link"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23646408.svg" alt="DOI"></a></p>
 <p>R package to process the cards of <strong>AudioMoth</strong> recorders, from the SD card to the records of a citizen-science platform:</p>
 <ol style="list-style-type: decimal">

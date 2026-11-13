@@ -49,7 +49,7 @@ am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
 #> • 10 with problems: duration < 3 s
 #> • Battery: 4.9 V → 4.5 V
 #> • Temperature: 11.7 to 34.4 °C
-#> • Results in: /tmp/RtmpXUCCMs/file23374b57c821
+#> • Results in: /tmp/RtmpQ97hCs/file22e5944f611
 am <- prepare_audio(am)   # 48 kHz mono already: nothing to convert
 #> ✔ All valid recordings are already 48 kHz mono: nothing to convert.
 #> ! 10 recordings with problems are left out (see column problem).

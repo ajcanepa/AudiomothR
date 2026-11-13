@@ -6,6 +6,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>1. Getting started: the complete workflow • AudiomothR</title>
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="icon" sizes="any" href="../favicon.ico">
+<link rel="manifest" href="../site.webmanifest">
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
@@ -57,8 +62,7 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-
-      <h1>1. Getting started: the complete workflow</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>1. Getting started: the complete workflow</h1>
             <h3 data-toc-skip class="subtitle">AudiomothR version
 0.4.0</h3>
                         <h4 data-toc-skip class="author">Antonio
@@ -411,12 +415,12 @@ west and south are negative.</p>
 <span>  output <span class="op">=</span> <span class="va">output</span>,                       <span class="co"># results folder of this box</span></span>
 <span>  copy_to <span class="op">=</span> <span class="cn">TRUE</span>                         <span class="co"># copy the card to the disk and work on the copy</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> <span style="color: #0000BB;">/tmp/RtmpISrST2/AudiomothR_results/box_01</span> is in the temporary folder of R: it</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> <span style="color: #0000BB;">/tmp/RtmphUrUxv/AudiomothR_results/box_01</span> is in the temporary folder of R: it</span></span>
 <span><span class="co">#&gt;   is deleted when R closes.</span></span>
 <span><span class="co">#&gt;   For your own recordings give a folder of your own, e.g. `output =</span></span>
 <span><span class="co">#&gt;   "~/AudiomothR_results/box_01"`.</span></span>
 <span><span class="co">#&gt; Copying the card to</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">/tmp/RtmpISrST2/AudiomothR_results/box_01/recordings/20261007-20261015</span>: 17</span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">/tmp/RtmphUrUxv/AudiomothR_results/box_01/recordings/20261007-20261015</span>: 17</span></span>
 <span><span class="co">#&gt; files (4 MB).</span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Card copied (17 files): the analysis uses the copy, and the card can be</span></span>
 <span><span class="co">#&gt;   formatted once you have checked it.</span></span>
@@ -428,7 +432,7 @@ west and south are negative.</p>
 <span><span class="co">#&gt; (copied)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; • Copy of the card (used from now on):</span></span>
-<span><span class="co">#&gt; <span style="color: #0000BB;">/tmp/RtmpISrST2/AudiomothR_results/box_01/recordings/20261007-20261015</span></span></span>
+<span><span class="co">#&gt; <span style="color: #0000BB;">/tmp/RtmphUrUxv/AudiomothR_results/box_01/recordings/20261007-20261015</span></span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; • Site of this card: Fictitious example site (41, -3; ±698 m; source: argument)</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -444,7 +448,7 @@ west and south are negative.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; • Temperature: 11.7 to 34.4 °C</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; • Results in: <span style="color: #0000BB;">/tmp/RtmpISrST2/AudiomothR_results/box_01</span></span></span></code></pre></div>
+<span><span class="co">#&gt; • Results in: <span style="color: #0000BB;">/tmp/RtmphUrUxv/AudiomothR_results/box_01</span></span></span></code></pre></div>
 <blockquote>
 <p><strong>This vignette saves everything in the temporary folder of
 R</strong> (<code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code>), which is deleted when R closes.
@@ -503,7 +507,7 @@ about the box, and that every step completes:</p>
 <span><span class="co">#&gt;  [1] "folder"      "card_folder" "config"      "location"    "site"       </span></span>
 <span><span class="co">#&gt;  [6] "deployment"  "time_zone"   "output"      "recordings"  "deployments"</span></span>
 <span><span class="va">am</span><span class="op">$</span><span class="va">folder</span>          <span class="co"># the copy of the card, used from now on</span></span>
-<span><span class="co">#&gt; [1] "/tmp/RtmpISrST2/AudiomothR_results/box_01/recordings/20261007-20261015"</span></span>
+<span><span class="co">#&gt; [1] "/tmp/RtmphUrUxv/AudiomothR_results/box_01/recordings/20261007-20261015"</span></span>
 <span><span class="va">am</span><span class="op">$</span><span class="va">card_folder</span>     <span class="co"># the original card</span></span>
 <span><span class="co">#&gt; [1] "/home/runner/work/_temp/Library/AudiomothR/extdata/example/card"</span></span></code></pre></div>
 <p>The <strong>inventory</strong> has one row per WAV file:</p>
@@ -912,7 +916,7 @@ files:</p>
 <span><span class="co">#&gt; Creating examples <span style="color: #00BB00;">■■■■■■■■■■■■■■■■                </span>  50% | ETA:  3s</span></span>
 <span><span class="co">#&gt; Creating examples <span style="color: #00BB00;">■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ </span> 100% | ETA:  0s</span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> 2 examples of 2 species in</span></span>
-<span><span class="co">#&gt;   <span style="color: #0000BB;">/tmp/RtmpISrST2/AudiomothR_results/box_01/examples</span>.</span></span>
+<span><span class="co">#&gt;   <span style="color: #0000BB;">/tmp/RtmphUrUxv/AudiomothR_results/box_01/examples</span>.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">examples</span><span class="op">$</span><span class="va">wav</span>, <span class="va">examples</span><span class="op">$</span><span class="va">png</span>, <span class="va">examples</span><span class="op">$</span><span class="va">mp4</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "Cettia_cetti_01_conf82_20261007_091547.wav"           </span></span>
 <span><span class="co">#&gt; [2] "Troglodytes_troglodytes_01_conf63_20261007_100504.wav"</span></span>
@@ -942,7 +946,7 @@ ffmpeg):</p>
 <code class="sourceCode R"><span><span class="va">wav</span> <span class="op">&lt;-</span> <span class="va">am</span><span class="op">$</span><span class="va">recordings</span><span class="op">$</span><span class="va">path</span><span class="op">[</span><span class="va">am</span><span class="op">$</span><span class="va">recordings</span><span class="op">$</span><span class="va">valid</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
 <span><span class="va">png</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spectrogram_image.html">spectrogram_image</a></span><span class="op">(</span><span class="va">wav</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"my_spectrogram.png"</span><span class="op">)</span>,</span>
 <span>                         title <span class="op">=</span> <span class="st">"My first spectrogram"</span>, max_freq <span class="op">=</span> <span class="fl">10000</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Spectrogram in <span style="color: #0000BB;">/tmp/RtmpISrST2/my_spectrogram.png</span>.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Spectrogram in <span style="color: #0000BB;">/tmp/RtmphUrUxv/my_spectrogram.png</span>.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">png</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
@@ -957,7 +961,7 @@ be checked by ear on a web page:</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">page</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_validation.html">create_validation</a></span><span class="op">(</span><span class="va">am</span>, min_confidence <span class="op">=</span> <span class="fl">0.5</span>, open <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Validation page with 3 records in</span></span>
-<span><span class="co">#&gt;   <span style="color: #0000BB;">/tmp/RtmpISrST2/AudiomothR_results/box_01/validation/AudioMoth_FACADE0012345678_validation.html</span>.</span></span>
+<span><span class="co">#&gt;   <span style="color: #0000BB;">/tmp/RtmphUrUxv/AudiomothR_results/box_01/validation/AudioMoth_FACADE0012345678_validation.html</span>.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Listen and decide, press <span style="font-weight: bold;">Download decisions (CSV)</span> and run</span></span>
 <span><span class="co">#&gt;   `export_observation(am)`: the decisions are applied automatically.</span></span></code></pre></div>
 <p>With <code>open = TRUE</code> (the default in RStudio) the page opens
@@ -1055,7 +1059,7 @@ applied (and tells you which file it found):</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/read_validation.html">read_validation</a></span><span class="op">(</span><span class="va">am</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"date"</span>, <span class="st">"scientific_name"</span>, <span class="st">"decision"</span>, <span class="st">"new_name"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Decisions read from</span></span>
-<span><span class="co">#&gt;   <span style="color: #0000BB;">/tmp/RtmpISrST2/AudiomothR_results/box_01/validation/AudioMoth_FACADE0012345678_validation.csv</span>.</span></span>
+<span><span class="co">#&gt;   <span style="color: #0000BB;">/tmp/RtmphUrUxv/AudiomothR_results/box_01/validation/AudioMoth_FACADE0012345678_validation.csv</span>.</span></span>
 <span><span class="co">#&gt;         date         scientific_name decision       new_name</span></span>
 <span><span class="co">#&gt; 1 2026-10-07 Troglodytes troglodytes    valid           &lt;NA&gt;</span></span>
 <span><span class="co">#&gt; 2 2026-10-07       Motacilla cinerea     &lt;NA&gt; Motacilla alba</span></span>
@@ -1069,10 +1073,10 @@ adding a card) keeps the decisions already taken.</p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">obs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/export_observation.html">export_observation</a></span><span class="op">(</span><span class="va">am</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Validation applied</span></span>
-<span><span class="co">#&gt;   (<span style="color: #0000BB;">/tmp/RtmpISrST2/AudiomothR_results/box_01/validation/AudioMoth_FACADE0012345678_validation.csv</span>):</span></span>
+<span><span class="co">#&gt;   (<span style="color: #0000BB;">/tmp/RtmphUrUxv/AudiomothR_results/box_01/validation/AudioMoth_FACADE0012345678_validation.csv</span>):</span></span>
 <span><span class="co">#&gt;   1 valid, 0 not valid, 1 relabelled.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> 2 records (2 species) for Observation.org in</span></span>
-<span><span class="co">#&gt;   <span style="color: #0000BB;">/tmp/RtmpISrST2/AudiomothR_results/box_01/AudioMoth_FACADE0012345678_observation.csv</span>.</span></span>
+<span><span class="co">#&gt;   <span style="color: #0000BB;">/tmp/RtmphUrUxv/AudiomothR_results/box_01/AudioMoth_FACADE0012345678_observation.csv</span>.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Criteria: confidence ≥ 0.8, ≥ 2 detections per species and day; records</span></span>
 <span><span class="co">#&gt;   validated by ear always included.</span></span>
 <span><span class="va">obs</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"date"</span>, <span class="st">"time"</span>, <span class="st">"scientific name"</span>, <span class="st">"is certain"</span>, <span class="st">"notes"</span><span class="op">)</span><span class="op">]</span></span>
@@ -1094,7 +1098,7 @@ out.</p>
 <code class="sourceCode R"><span><span class="va">obs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/export_observation.html">export_observation</a></span><span class="op">(</span><span class="va">am</span>, min_confidence <span class="op">=</span> <span class="fl">0.5</span>, min_detections <span class="op">=</span> <span class="fl">1</span>, validation <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>                          overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> 3 records (3 species) for Observation.org in</span></span>
-<span><span class="co">#&gt;   <span style="color: #0000BB;">/tmp/RtmpISrST2/AudiomothR_results/box_01/AudioMoth_FACADE0012345678_observation.csv</span>.</span></span>
+<span><span class="co">#&gt;   <span style="color: #0000BB;">/tmp/RtmphUrUxv/AudiomothR_results/box_01/AudioMoth_FACADE0012345678_observation.csv</span>.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Criteria: confidence ≥ 0.5, ≥ 1 detection per species and day.</span></span>
 <span><span class="va">obs</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"date"</span>, <span class="st">"time"</span>, <span class="st">"scientific name"</span>, <span class="st">"is certain"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;         date  time         scientific name is certain</span></span>

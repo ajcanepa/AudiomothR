@@ -151,7 +151,7 @@ am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
 #> • 10 with problems: duration < 3 s
 #> • Battery: 4.9 V → 4.5 V
 #> • Temperature: 11.7 to 34.4 °C
-#> • Results in: /tmp/RtmpXUCCMs/file23376c5b7946
+#> • Results in: /tmp/RtmpQ97hCs/file22e568726174
 head(am$recordings[, c("file", "start_local", "duration_s", "valid", "problem")])
 #>                                   file         start_local duration_s valid
 #> 1 FACADE0012345678_20261007_041500.WAV 2026-10-07 06:15:00       0.05 FALSE
@@ -172,7 +172,7 @@ head(am$recordings[, c("file", "start_local", "duration_s", "valid", "problem")]
 out <- tempfile()
 am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = out, copy_to = TRUE)
 #> Copying the card to
-#> /tmp/RtmpXUCCMs/file233764ab2a8d/recordings/20261007-20261015: 17 files (4 MB).
+#> /tmp/RtmpQ97hCs/file22e558cfcfb8/recordings/20261007-20261015: 17 files (4 MB).
 #> ✔ Card copied (17 files): the analysis uses the copy, and the card can be
 #>   formatted once you have checked it.
 #> 
@@ -180,7 +180,7 @@ am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = out, copy_to =
 #> • Card: /home/runner/work/_temp/Library/AudiomothR/extdata/example/card
 #> (copied)
 #> • Copy of the card (used from now on):
-#> /tmp/RtmpXUCCMs/file233764ab2a8d/recordings/20261007-20261015
+#> /tmp/RtmpQ97hCs/file22e558cfcfb8/recordings/20261007-20261015
 #> • Site of this card: AudioMoth FACADE0012345678 (41, -3; ±698 m; source:
 #> argument)
 #> • Map: <https://www.openstreetmap.org/?mlat=41&mlon=-3#map=15/41/-3>
@@ -189,7 +189,7 @@ am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = out, copy_to =
 #> • 10 with problems: duration < 3 s
 #> • Battery: 4.9 V → 4.5 V
 #> • Temperature: 11.7 to 34.4 °C
-#> • Results in: /tmp/RtmpXUCCMs/file233764ab2a8d
+#> • Results in: /tmp/RtmpQ97hCs/file22e558cfcfb8
 am$folder   # the copy: <output>/recordings/20261007-20261015
-#> [1] "/tmp/RtmpXUCCMs/file233764ab2a8d/recordings/20261007-20261015"
+#> [1] "/tmp/RtmpQ97hCs/file22e558cfcfb8/recordings/20261007-20261015"
 ```

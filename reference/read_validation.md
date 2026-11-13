@@ -55,7 +55,7 @@ am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
 #> • 10 with problems: duration < 3 s
 #> • Battery: 4.9 V → 4.5 V
 #> • Temperature: 11.7 to 34.4 °C
-#> • Results in: /tmp/RtmpXUCCMs/file233757c798c
+#> • Results in: /tmp/RtmpQ97hCs/file22e51a1bfdc4
 read_validation(am)   # NULL: nothing validated yet
 #> NULL
 ```

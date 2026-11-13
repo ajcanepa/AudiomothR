@@ -70,12 +70,12 @@ output <- file.path(tempdir(), "AudiomothR_results", "box_01")
 
 am <- read_audiomoth(card_1, coordinates = "41.00, -3.00", site = "River - bridge",
                      output = output, copy_to = TRUE)
-#> ℹ /tmp/RtmpElCi7t/AudiomothR_results/box_01 is in the temporary folder of R: it
+#> ℹ /tmp/RtmpWfm4gg/AudiomothR_results/box_01 is in the temporary folder of R: it
 #>   is deleted when R closes.
 #>   For your own recordings give a folder of your own, e.g. `output =
 #>   "~/AudiomothR_results/box_01"`.
 #> Copying the card to
-#> /tmp/RtmpElCi7t/AudiomothR_results/box_01/recordings/20261007-20261007: 9 files
+#> /tmp/RtmpWfm4gg/AudiomothR_results/box_01/recordings/20261007-20261007: 9 files
 #> (2 MB).
 #> ✔ Card copied (9 files): the analysis uses the copy, and the card can be
 #>   formatted once you have checked it.
@@ -83,10 +83,10 @@ am <- read_audiomoth(card_1, coordinates = "41.00, -3.00", site = "River - bridg
 #> 
 #> ── AudioMoth FACADE0012345678 ──────────────────────────────────────────────────
 #> 
-#> • Card: /tmp/RtmpElCi7t/card_20261007 (copied)
+#> • Card: /tmp/RtmpWfm4gg/card_20261007 (copied)
 #> 
 #> • Copy of the card (used from now on):
-#> /tmp/RtmpElCi7t/AudiomothR_results/box_01/recordings/20261007-20261007
+#> /tmp/RtmpWfm4gg/AudiomothR_results/box_01/recordings/20261007-20261007
 #> 
 #> • Site of this card: River - bridge (41, -3; ±698 m; source: argument)
 #> 
@@ -102,7 +102,7 @@ am <- read_audiomoth(card_1, coordinates = "41.00, -3.00", site = "River - bridg
 #> 
 #> • Temperature: 12.5 to 16.3 °C
 #> 
-#> • Results in: /tmp/RtmpElCi7t/AudiomothR_results/box_01
+#> • Results in: /tmp/RtmpWfm4gg/AudiomothR_results/box_01
 ```
 
 ### Some days later: the next card
@@ -115,7 +115,7 @@ so its new coordinates and site are given:
 am <- read_audiomoth(card_2, coordinates = "41.03, -2.97", site = "Pine forest",
                      output = output, copy_to = TRUE)
 #> Copying the card to
-#> /tmp/RtmpElCi7t/AudiomothR_results/box_01/recordings/20261015-20261015: 9 files
+#> /tmp/RtmpWfm4gg/AudiomothR_results/box_01/recordings/20261015-20261015: 9 files
 #> (2 MB).
 #> ✔ Card copied (9 files): the analysis uses the copy, and the card can be
 #>   formatted once you have checked it.
@@ -123,10 +123,10 @@ am <- read_audiomoth(card_2, coordinates = "41.03, -2.97", site = "Pine forest",
 #> 
 #> ── AudioMoth FACADE0012345678 ──────────────────────────────────────────────────
 #> 
-#> • Card: /tmp/RtmpElCi7t/card_20261015 (copied)
+#> • Card: /tmp/RtmpWfm4gg/card_20261015 (copied)
 #> 
 #> • Copy of the card (used from now on):
-#> /tmp/RtmpElCi7t/AudiomothR_results/box_01/recordings/20261015-20261015
+#> /tmp/RtmpWfm4gg/AudiomothR_results/box_01/recordings/20261015-20261015
 #> 
 #> • Site of this card: Pine forest (41.03, -2.97; ±698 m; source: argument)
 #> 
@@ -145,7 +145,7 @@ am <- read_audiomoth(card_2, coordinates = "41.03, -2.97", site = "Pine forest",
 #> 
 #> • Temperature: 11.7 to 34.4 °C
 #> 
-#> • Results in: /tmp/RtmpElCi7t/AudiomothR_results/box_01
+#> • Results in: /tmp/RtmpWfm4gg/AudiomothR_results/box_01
 ```
 
 The summary now says *Deployments of this box: 2*. The deployments are
@@ -228,7 +228,7 @@ species_summary(am)
 #> 3         0.6319           0.632        0.2354                  0
 obs <- export_observation(am, min_confidence = 0.5, min_detections = 1)
 #> ✔ 3 records (3 species) for Observation.org in
-#>   /tmp/RtmpElCi7t/AudiomothR_results/box_01/AudioMoth_FACADE0012345678_observation.csv.
+#>   /tmp/RtmpWfm4gg/AudiomothR_results/box_01/AudioMoth_FACADE0012345678_observation.csv.
 #> ℹ Criteria: confidence ≥ 0.5, ≥ 1 detection per species and day.
 obs[, c("date", "scientific name", "lat", "lng", "accuracy")]
 #>         date         scientific name lat lng accuracy
@@ -258,7 +258,7 @@ am <- read_audiomoth(copies[2], output = output)
 #> 
 #> ── AudioMoth FACADE0012345678 ──────────────────────────────────────────────────
 #> • Folder:
-#> /tmp/RtmpElCi7t/AudiomothR_results/box_01/recordings/20261015-20261015
+#> /tmp/RtmpWfm4gg/AudiomothR_results/box_01/recordings/20261015-20261015
 #> • Site of this card: Pine forest (41.03, -2.97; ±698 m; source: argument)
 #> • Deployments of this box: 2 (River - bridge, Pine forest)
 #> • Map:
@@ -268,7 +268,7 @@ am <- read_audiomoth(copies[2], output = output)
 #> • 10 with problems: duration < 3 s
 #> • Battery: 4.9 V → 4.5 V
 #> • Temperature: 11.7 to 34.4 °C
-#> • Results in: /tmp/RtmpElCi7t/AudiomothR_results/box_01
+#> • Results in: /tmp/RtmpWfm4gg/AudiomothR_results/box_01
 ```
 
 Nothing is copied or analysed again: the card was read before, so its
