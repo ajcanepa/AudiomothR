@@ -12,6 +12,7 @@ Reads the cards of 'AudioMoth' recorders (Hill et al. 2018) \doi{10.1111/2041-21
 Useful links:
 \itemize{
   \item \url{https://github.com/ajcanepa/AudiomothR}
+  \item \url{https://ajcanepa.github.io/AudiomothR/}
   \item Report bugs at \url{https://github.com/ajcanepa/AudiomothR/issues}
 }
 

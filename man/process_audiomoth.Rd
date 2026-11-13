@@ -101,6 +101,8 @@ If it is interrupted, running it again continues where it stopped. When
 }
 \examples{
 \dontrun{
+# Not run: it reads a real card and runs BirdNET, which is installed the
+# first time (Python, TensorFlow and the model: about 3 GB)
 am <- process_audiomoth(
   coordinates = "41.123456, -3.123456",    # copied from Google Earth
   output = "~/AudiomothR_results/box_01",

@@ -231,7 +231,8 @@ convert_recording <- function(src, dest, triggered = FALSE) {
 #' @return `am` with `am$detections` (data frame).
 #' @examples
 #' \dontrun{
-#' # The first time it installs Python and downloads the model (a few minutes)
+#' # Not run: the first time it installs Python, TensorFlow and the BirdNET
+#' # model (about 3 GB, a few minutes)
 #' card <- system.file("extdata", "example", "card", package = "AudiomothR")
 #' am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
 #' am <- analyze_birdnet(am)

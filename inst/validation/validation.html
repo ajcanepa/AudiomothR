@@ -63,7 +63,13 @@ kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4p
 .chip.warn { border-color: var(--unsure); color: var(--unsure); font-weight: 600; }
 .clips { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
 .clip { border: 1px solid var(--line); border-radius: 6px; padding: 6px; background: var(--card); }
-.clip img { width: 100%; display: block; border-radius: 4px; }
+.clip img { width: 100%; display: block; border-radius: 4px; cursor: zoom-in; }
+#zoom { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 8px; padding: 16px; background: rgba(0, 0, 0, .88); cursor: zoom-out; }
+#zoom[hidden] { display: none; }
+#zoom img { width: min(100%, 1400px); max-height: calc(100% - 40px); object-fit: contain; background: #fff;
+  border-radius: 4px; }
+#zoom .cap { color: #ddd; font-size: .9rem; text-align: center; }
 .clip audio { width: 100%; margin-top: 4px; }
 .clip .cap { font-size: .8rem; color: var(--muted); }
 .decide { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
@@ -113,12 +119,16 @@ kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4p
         that species.</li>
     </ul>
     <p>Move with <kbd>J</kbd>/<kbd>K</kbd> (or <kbd>&darr;</kbd>/<kbd>&uarr;</kbd>), play the first clip with
-      <kbd>Space</kbd>. Your decisions are kept in this browser. When you finish (or to continue on another
+      <kbd>Space</kbd>. Click a spectrogram to see it at full size (click again or press <kbd>Esc</kbd> to close it). Your decisions are kept in this browser. When you finish (or to continue on another
       computer), press <strong>Download decisions</strong> and run <code>export_observation(am)</code> in R: it finds
       the file in the validation folder or in your Downloads folder.</p>
   </details>
   <div id="list"></div>
 </main>
+<div id="zoom" hidden role="dialog" aria-label="Spectrogram at full size">
+  <img alt="">
+  <div class="cap"></div>
+</div>
 <datalist id="species"></datalist>
 <script id="data" type="application/json">__AUDIOMOTHR_DATA__</script>
 <script>
@@ -176,6 +186,18 @@ kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4p
     return e;
   }
 
+  // Spectrogram at full size: click on it, click again or Esc to close
+  var zoom = document.getElementById("zoom");
+  function openZoom(src, alt, caption) {
+    var z = zoom.querySelector("img");
+    z.src = src;
+    z.alt = alt;
+    zoom.querySelector(".cap").textContent = caption;
+    zoom.hidden = false;
+  }
+  function closeZoom() { zoom.hidden = true; }
+  zoom.onclick = closeZoom;
+
   var list = document.getElementById("list");
   var cards = [];
   records.forEach(function (r, i) {
@@ -209,6 +231,10 @@ kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4p
         img.loading = "lazy";
         img.src = x.image;
         img.alt = "Spectrogram of " + x.file;
+        img.title = "Click to see it at full size";
+        var caption = r.common_name + " · " + x.time + " · " + x.file + ", " + x.start_s + " s · confidence " +
+          x.confidence.toFixed(2);
+        img.onclick = function () { openZoom(x.image, img.alt, caption); };
         b.appendChild(img);
       }
       var a = el("audio");
@@ -312,6 +338,11 @@ kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4p
     if (i >= 0 && i < cards.length) setCurrent(i, true);
   }
   document.addEventListener("keydown", function (e) {
+    if (!zoom.hidden) {
+      if (e.key === "Escape" || e.key.toLowerCase() === "j" || e.key.toLowerCase() === "k" ||
+          e.key === "ArrowDown" || e.key === "ArrowUp") closeZoom();
+      if (e.key === "Escape") { e.preventDefault(); return; }
+    }
     var t = e.target.tagName;
     if (t === "INPUT" || t === "SELECT" || t === "TEXTAREA" || e.ctrlKey || e.metaKey || e.altKey) return;
     var k = e.key.toLowerCase();

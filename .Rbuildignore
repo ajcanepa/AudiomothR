@@ -8,3 +8,6 @@
 ^PENDIENTE\.md$
 ^data-raw$
 ^Mejoras$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$

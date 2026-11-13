@@ -48,12 +48,16 @@ report_template <- c("report.qmd", "_section.qmd", "report_functions.R")
 #' @param overwrite_template Copy the template files again, replacing the
 #'   edited ones.
 #' @return Invisibly, the path of the PDF file.
-#' @examples
-#' \dontrun{
-#' create_report(am)                                         # one recorder
-#' create_report(list(am1, am2, am3), by_recorder = FALSE,
-#'               output = "report_river")                    # several recorders together
-#' }
+#' @examplesIf interactive()
+#' # Needs Quarto (included in RStudio and Positron): see check_requirements()
+#' card <- system.file("extdata", "example", "card", package = "AudiomothR")
+#' am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
+#' am$detections <- read_detections(system.file("extdata", "example",
+#'   "birdnet_detections.csv", package = "AudiomothR"))
+#' pdf <- create_report(am)                                  # one recorder
+#'
+#' # Several recorders together:
+#' # create_report(list(am1, am2, am3), by_recorder = FALSE, output = "report_river")
 #' @export
 create_report <- function(recorders, by_recorder = TRUE, output = NULL,
                           title = "Acoustic monitoring report", min_confidence = 0.5, map = TRUE,
@@ -121,7 +125,7 @@ create_report <- function(recorders, by_recorder = TRUE, output = NULL,
   inform(c("v" = "Report in {.file {pdf}}."))
   if (open) {
     tryCatch(utils::browseURL(pdf),
-             error = function(e) inform("!" = "Cannot open the PDF: {cli_escape(conditionMessage(e))}"))
+             error = function(e) inform("!" = "Cannot open the PDF: {cli::ansi_strip(conditionMessage(e))}"))
   }
   invisible(pdf)
 }
@@ -313,7 +317,7 @@ observation_export <- function(am, label) {
 #' Path of the Quarto executable (also the one that comes with RStudio or
 #' Positron)
 #' @noRd
-quarto_path <- function() {
+quarto_path <- function(check_version = TRUE) {
   option <- getOption("AudiomothR.quarto")
   if (!is.null(option) && (!file.exists(option) || dir.exists(option))) {
     abort("{.file {option}} does not exist (option {.code AudiomothR.quarto}).")
@@ -340,10 +344,11 @@ quarto_path <- function() {
   path <- unname(candidates[[1]])
   version <- tryCatch(trimws(processx::run(path, "--version")$stdout), error = function(e) e)
   if (inherits(version, "error")) {
-    abort("Cannot run {.file {path}} --version: {cli_escape(conditionMessage(version))}")
+    abort("Cannot run {.file {path}} --version: {cli::ansi_strip(conditionMessage(version))}")
   }
-  if (utils::compareVersion(version, "1.4") < 0) {
-    abort("The report needs Quarto 1.4 or later (found {version} in {.file {path}}).")
+  if (check_version && utils::compareVersion(version, "1.4") < 0) {
+    abort("The report needs Quarto 1.4 or later (found {version} in {.file {path}}).",
+          "i" = "Update RStudio or Positron (they include Quarto), or install Quarto from {.url https://quarto.org}.")
   }
-  path
+  structure(path, version = version)
 }

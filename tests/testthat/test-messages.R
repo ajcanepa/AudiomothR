@@ -32,3 +32,14 @@ test_that("spectrogram_image() says where it saved the image, unless quiet", {
   expect_no_message(quietly(spectrogram_image(wav, png)))
   expect_false(isTRUE(getOption("AudiomothR.quiet")))
 })
+
+test_that("load_problem() says which package is missing or cannot be loaded", {
+  expect_null(load_problem(c("stats", "utils")))
+  expect_match(load_problem(c("stats", "notAPackage123")), "notAPackage123 is not installed")
+})
+
+test_that("check_requirements() returns what is available", {
+  ok <- suppressMessages(check_requirements())
+  expect_named(ok, c("ffmpeg", "birdnetR", "quarto", "knitr_rmarkdown", "map"))
+  expect_type(ok, "logical")
+})

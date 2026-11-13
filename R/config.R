@@ -63,7 +63,7 @@ read_config <- function(file) {
   if (!is.na(location_text)) {
     location <- tryCatch(parse_coordinates(sub("\\s*\\(.*$", "", location_text)),
                          error = function(e) {
-                           cli::cli_warn("Cannot read the location of the CONFIG.TXT ({.val {location_text}}): {cli_escape(conditionMessage(e))}")
+                           cli::cli_warn("Cannot read the location of the CONFIG.TXT ({.val {location_text}}): {cli::ansi_strip(conditionMessage(e))}")
                            NULL
                          })
   }

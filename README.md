@@ -25,8 +25,18 @@ to the records of a citizen-science platform:
    of Observation.org.
 6. Create a **PDF report** of one or several recorders.
 
-> **New to AudiomothR?** Follow the three vignettes in order, with the
-> example card of the package: `vignette("audiomothr-1-workflow")` (the
+**Who is it for?** Ecologists, naturalists, technicians of protected areas
+and citizen-science volunteers who deploy AudioMoth recorders to monitor
+birds and want to go from the SD card to checked records without
+programming the workflow themselves. Basic knowledge of R is enough: each
+step is one function, the vignettes start from zero with an example card,
+and `process_audiomoth()` runs everything in one call. Bioacousticians can
+use it to organise many cards and boxes, choose the species that BirdNET
+looks for, and validate the detections by ear before publishing them.
+
+> **New to AudiomothR?** Everything, vignettes included, can be read on the
+> web site of the package: <https://ajcanepa.github.io/AudiomothR/>. Follow
+> the three vignettes in order, with the example card of the package: `vignette("audiomothr-1-workflow")` (the
 > complete workflow), `vignette("audiomothr-2-species")` (which species
 > BirdNET looks for) and `vignette("audiomothr-3-boxes")` (several cards,
 > boxes and reports). See section 15.
@@ -55,7 +65,15 @@ to the records of a citizen-science platform:
 install.packages("remotes")
 remotes::install_github("ajcanepa/AudiomothR")            # latest version
 remotes::install_github("ajcanepa/AudiomothR@v0.4.0")     # a given version
+# With the vignettes, to read them with browseVignettes("AudiomothR"):
+remotes::install_github("ajcanepa/AudiomothR", build_vignettes = TRUE)
 ```
+
+Building the vignettes needs `knitr`, `rmarkdown` and pandoc (pandoc comes
+with RStudio and Positron; in a plain R console, install it from
+<https://pandoc.org>). If the installation with vignettes fails, install
+without them: they can be read on the web site of the package,
+<https://ajcanepa.github.io/AudiomothR/articles/>.
 
 Check that everything is ready:
 
@@ -392,6 +410,8 @@ Recordings at 250 kHz take longer (they are first converted to 48 kHz).
 |---|---|
 | `Cannot find ffmpeg` | Install ffmpeg (see Requirements) or set its path: `options(AudiomothR.ffmpeg = "C:/ffmpeg/bin/ffmpeg.exe")` |
 | `Cannot find Quarto` | Use RStudio or Positron (they include it), install it from <https://quarto.org> or set its path: `options(AudiomothR.quarto = "/path/to/quarto")` |
+| `The report needs Quarto 1.4 or later` | Update RStudio or Positron (they include Quarto), or install it from <https://quarto.org> |
+| The report or the vignettes fail with `namespace 'htmltools' ... is being loaded, but >= ... is required` (or another package) | An old package used by `rmarkdown`: `install.packages(c("knitr", "rmarkdown", "htmltools", "xfun"))` and restart R. `check_requirements()` shows the problem |
 | `Cannot write in ...` | The card is write-protected: give another `output` folder |
 | `The results folder ... already holds the results of another AudioMoth` | Use one `output` folder per box; each box gathers its own cards |
 | The map of the report has no background | Install `maptiles`, `sf` and `terra`, and check the Internet connection |
@@ -475,3 +495,12 @@ If you use AudiomothR, cite the version you used (`citation("AudiomothR")`):
 
 Each version published on GitHub is archived in Zenodo with its own DOI; the
 DOI above always resolves to the latest version.
+
+## 18. Contributing
+
+Questions, problems and ideas are welcome as
+[issues](https://github.com/ajcanepa/AudiomothR/issues), in English or
+Spanish; see [CONTRIBUTING](.github/CONTRIBUTING.md) for what to include and
+how to propose changes. Please note that the AudiomothR project is released
+with a [Contributor Code of Conduct](.github/CODE_OF_CONDUCT.md). By
+contributing to this project, you agree to abide by its terms.

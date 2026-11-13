@@ -88,7 +88,8 @@ ensure_birdnet_model <- function(version = "v2.4", attempts = 3) {
 #' @return Invisibly, `TRUE` when BirdNET works.
 #' @examples
 #' \dontrun{
-#' setup_birdnet()   # the first time: a few minutes and about 3 GB
+#' # Not run: it installs Python, TensorFlow and the BirdNET model (about 3 GB)
+#' setup_birdnet()
 #' }
 #' @export
 setup_birdnet <- function(version = "v2.4", language = default_language()) {

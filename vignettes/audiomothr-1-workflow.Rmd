@@ -404,6 +404,34 @@ detections good enough for an example (confidence ≥ `example_confidence`,
 0.85 by default, and no doubts). Here no detection reaches 0.85, so there
 are no candidates.
 
+### Thresholds: which one does what
+
+A detection meets several thresholds along the workflow. **None of them
+makes a record true**: the confidence of BirdNET is a score, not a
+probability, and only listening (step 6) confirms a species.
+
+| Step | Argument (default) | What it decides |
+|---|---|---|
+| 3. `analyze_birdnet()` | `min_confidence` (0.10) | What BirdNET keeps as a detection: candidates, many of them wrong. It is low on purpose, so that the other thresholds can be changed without analysing again |
+| 3. `analyze_birdnet()` | `location_threshold` (0.03) | Which species BirdNET looks for at the site and week (vignette 2) |
+| 4. `species_summary()`, `detected_species()`; 8. `create_report()` | `min_confidence` (0.5) | Which detections are counted as a **possible** presence in the summary and the report |
+| 4. `detected_species()`; 5. `select_examples()`, `extract_examples()`; `process_audiomoth()` | `example_confidence` or `min_confidence` of the examples (0.85), `no_doubts` (`TRUE`) | Which detections are clear enough to **show** the species: a high bar, only to choose good examples |
+| 6. `create_validation()` | `min_confidence` (0.5), `min_detections` (1) | Which records are put on the validation page |
+| 7. `export_observation()` | `min_confidence` (0.8), `min_detections` (2), `no_doubts_only` (`FALSE`) | Which records go to Observation.org **without validation**. Records validated by ear do not follow them: the valid ones are exported, the not valid ones are left out |
+
+Two things to keep in mind:
+
+- **One threshold does not suit every species.** A species that is well
+  identified may still get low scores when it sings far from the recorder,
+  softly or with noise. For the species that matter to you, lower
+  `min_confidence` in `create_validation()` and decide by ear.
+- **A window with two species is not necessarily wrong.** BirdNET scores
+  each species separately, so two birds singing at the same time can both
+  be right. That is why `no_doubts` is only used to choose examples and
+  never removes detections; `other_confidence_max` shows how close the other
+  species was (here, the white wagtail had 0.14 against 0.82 of the grey
+  wagtail).
+
 `detected_species()` prints the species **as R code**, ready to choose the
 examples of step 5. Here the threshold of the examples is lowered to 0.5,
 because the example card has few detections:
@@ -700,6 +728,8 @@ files[!grepl("^(birdnet|recordings|validation/clips|report/)", files)]
 | Examples or validation without audio | Without `copy_to`, the card must be connected at the same path |
 | I cannot find the files (examples, spectrograms, videos, pages) | They are in the results folder (`am$output`); the message of each function gives the full path. With `output` in `tempdir()`, as in this vignette, they are deleted when R closes |
 | The validation page does not open in Firefox ("File not found") on Ubuntu | Firefox (and Chromium) installed as a *snap* cannot open files in `/tmp`, where `tempdir()` is: open the page in the Viewer of RStudio or in another browser, or use a results folder outside `/tmp` |
+| The report fails with `namespace 'htmltools' ... is being loaded, but >= ... is required` (or another package) | An old package used by `rmarkdown`: `install.packages(c("knitr", "rmarkdown", "htmltools", "xfun"))` and restart R. `check_requirements()` shows the problem |
+| `The report needs Quarto 1.4 or later` | Update RStudio or Positron (they include Quarto), or install it from <https://quarto.org> |
 | Too many messages | `options(AudiomothR.quiet = TRUE)` hides the informative ones |
 
 ## Next steps

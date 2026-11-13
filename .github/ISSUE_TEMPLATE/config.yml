@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Read the vignettes first
+    url: https://github.com/ajcanepa/AudiomothR#readme
+    about: The vignettes go through the whole workflow with the example card, and have a section of usual problems.

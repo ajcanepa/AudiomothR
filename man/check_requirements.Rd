@@ -14,9 +14,16 @@ available.
 Reports, for each requirement, whether it is available and how to install
 it otherwise: ffmpeg (required to convert audio and create videos),
 birdnetR (required; the first time it installs Python and the BirdNET
-model) and, for the PDF report, Quarto, knitr and rmarkdown, and the map
-packages (maptiles, sf and terra). It also shows the language that will be
-used for the common names of the species.
+model) and, for the PDF report, Quarto (1.4 or later), knitr and rmarkdown,
+and the map packages (maptiles, sf and terra). It also shows the language
+that will be used for the common names of the species.
+}
+\details{
+knitr and rmarkdown are not only looked for but loaded: an old version of
+one of the packages they use (often htmltools, after updating RStudio or
+rmarkdown) prevents loading them, and then neither the report nor the
+vignettes can be built. The message of R says which package must be
+updated.
 }
 \examples{
 check_requirements()

@@ -10,6 +10,32 @@ Changes after the review of Julia Guerra Carande (rOpenSci reviewer template).
   there.
 * `spectrogram_image()` and `spectrogram_video()` say where they saved the
   file.
+* Validation page: a click on a spectrogram shows it at full size (a click
+  or `Esc` closes it), while the page keeps its compact layout.
+* `check_requirements()` shows the version of Quarto and says when it is
+  older than 1.4 (before, an old Quarto was reported as not found), and
+  loads knitr and rmarkdown instead of only looking for them: an old package
+  that they use (often htmltools) prevents loading them, and the message
+  says which one to update.
+* Messages that quote an error of another program or package no longer
+  show its braces doubled (`{{x}}`).
+* Vignette 1: a table of the thresholds of the workflow (`min_confidence` of
+  each step, `example_confidence`, `location_threshold`...), what each one
+  decides, and why a window with two species is not necessarily wrong.
+* README: who the package is for; installation with the vignettes and what
+  it needs (pandoc); old Quarto and packages that do not load in the usual
+  problems.
+* The examples of `create_report()` and `gbif_species_list()` can now be
+  run (`example(create_report)`): they use the example card and a temporary
+  folder. Those of `setup_birdnet()`, `analyze_birdnet()` and
+  `process_audiomoth()` are still not run, because they install BirdNET
+  (about 3 GB).
+* Contribution guidelines (`.github/CONTRIBUTING.md`), a code of conduct
+  (Contributor Covenant 2.1) and templates for the issues, linked from the
+  README.
+* Web site of the package, built with pkgdown:
+  <https://ajcanepa.github.io/AudiomothR/>. The vignettes can be read there
+  without building them when installing.
 * Vignette 1 and the README: where to find the files, and the validation
   page that does not open in Firefox on Ubuntu, in the usual problems.
 

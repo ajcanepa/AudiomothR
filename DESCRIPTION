@@ -35,7 +35,7 @@ Description: Reads the cards of 'AudioMoth' recorders (Hill et al. 2018)
 License: GPL (>= 3)
 Copyright: See file COPYRIGHTS (IOC World Bird List, Observation.org values
     and code adapted from Biosonora).
-URL: https://github.com/ajcanepa/AudiomothR
+URL: https://github.com/ajcanepa/AudiomothR, https://ajcanepa.github.io/AudiomothR/
 BugReports: https://github.com/ajcanepa/AudiomothR/issues
 Encoding: UTF-8
 Language: en-GB

@@ -68,9 +68,15 @@ edits made to them (unless \code{overwrite_template = TRUE}) and only update
 the data.
 }
 \examples{
-\dontrun{
-create_report(am)                                         # one recorder
-create_report(list(am1, am2, am3), by_recorder = FALSE,
-              output = "report_river")                    # several recorders together
-}
+\dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
+# Needs Quarto (included in RStudio and Positron): see check_requirements()
+card <- system.file("extdata", "example", "card", package = "AudiomothR")
+am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
+am$detections <- read_detections(system.file("extdata", "example",
+  "birdnet_detections.csv", package = "AudiomothR"))
+pdf <- create_report(am)                                  # one recorder
+
+# Several recorders together:
+# create_report(list(am1, am2, am3), by_recorder = FALSE, output = "report_river")
+\dontshow{\}) # examplesIf}
 }

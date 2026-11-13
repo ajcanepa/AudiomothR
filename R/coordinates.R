@@ -61,7 +61,7 @@ parse_coordinates <- function(text) {
     tuples <- strsplit(trimws(kml[2]), "\\s+")[[1]]
     if (length(tuples) > 1) inform("i" = "The KML has {length(tuples)} points; the first one is used.")
     parts <- strsplit(tuples[1], ",", fixed = TRUE)[[1]]
-    if (length(parts) < 2) abort("Cannot read the KML coordinates {.val {cli_escape(original)}}.")
+    if (length(parts) < 2) abort("Cannot read the KML coordinates {.val {cli::ansi_strip(original)}}.")
     return(check_coordinates(suppressWarnings(as.numeric(parts[2])), suppressWarnings(as.numeric(parts[1])),
                              decimal_step(parts[1:2]), original))
   }
@@ -125,7 +125,7 @@ coordinates_from_url <- function(t, original) {
     if (!is.null(res)) return(res)
   }
   # "@<lat>,<lon>,<zoom>z" is only the centre of the map view, not the point
-  abort("This link does not contain the coordinates of a point: {.val {cli_escape(original)}}.",
+  abort("This link does not contain the coordinates of a point: {.val {cli::ansi_strip(original)}}.",
         "i" = "The numbers after {.val @} in a Google Maps link are the centre of the map view, and short links ({.url maps.app.goo.gl}) only point to a place.",
         "i" = "Click the point in Google Maps and copy the numbers shown (e.g. {.val 41.123456, -3.123456}).")
 }
@@ -143,7 +143,7 @@ coordinate_numbers <- function(t, decimal_comma) {
 coordinates_with_hemispheres <- function(t, original) {
   leftover <- gsub("(?<![A-Z])[NSEWO](?![A-Z])", " ", t, perl = TRUE)
   if (grepl("[A-Z]", leftover)) {
-    abort("Cannot read the coordinates {.val {cli_escape(original)}}: they contain text that is not a hemisphere (N/S/E/W/O).")
+    abort("Cannot read the coordinates {.val {cli::ansi_strip(original)}}: they contain text that is not a hemisphere (N/S/E/W/O).")
   }
   # Tokens in order: numbers and hemisphere letters
   decimal_comma <- !grepl(".", t, fixed = TRUE)
@@ -151,23 +151,23 @@ coordinates_with_hemispheres <- function(t, original) {
   tokens <- regmatches(tt, gregexpr("[-+]?[0-9]+(?:\\.[0-9]+)?|(?<![A-Z])[NSEWO](?![A-Z])", tt, perl = TRUE))[[1]]
   is_letter <- grepl("^[NSEWO]$", tokens)
   if (sum(is_letter) != 2) {
-    abort("Cannot read the coordinates {.val {cli_escape(original)}}: there must be one hemisphere for the latitude (N/S) and one for the longitude (E/W/O).")
+    abort("Cannot read the coordinates {.val {cli::ansi_strip(original)}}: there must be one hemisphere for the latitude (N/S) and one for the longitude (E/W/O).")
   }
   # Hemisphere before the numbers (GPS: "N41 07.407 W3 07.407") or after them
   prefix <- is_letter[1]
   group <- if (prefix) cumsum(is_letter) else rev(cumsum(rev(is_letter)))
   if (any(group == 0)) {
-    abort("Cannot read the coordinates {.val {cli_escape(original)}}: there are numbers after the last hemisphere.")
+    abort("Cannot read the coordinates {.val {cli::ansi_strip(original)}}: there are numbers after the last hemisphere.")
   }
   blocks <- lapply(1:2, function(k) tokens[group == k])
   if (!all(vapply(blocks, function(b) sum(grepl("^[NSEWO]$", b)) == 1 && length(b) %in% 2:4, logical(1)))) {
-    abort("Cannot read the coordinates {.val {cli_escape(original)}}: each one must have 1 to 3 numbers (degrees, minutes, seconds) and a hemisphere.")
+    abort("Cannot read the coordinates {.val {cli::ansi_strip(original)}}: each one must have 1 to 3 numbers (degrees, minutes, seconds) and a hemisphere.")
   }
   values <- lapply(blocks, function(b) {
     hemisphere <- b[grepl("^[NSEWO]$", b)]
     v <- dms_value(b[!grepl("^[NSEWO]$", b)], original)
     if (v$negative && hemisphere %in% c("S", "W", "O")) {
-      abort("The coordinates {.val {cli_escape(original)}} have both a minus sign and a hemisphere S/W.")
+      abort("The coordinates {.val {cli::ansi_strip(original)}} have both a minus sign and a hemisphere S/W.")
     }
     v$value <- abs(v$value) * if (v$negative || hemisphere %in% c("S", "W", "O")) -1 else 1
     v$is_lat <- hemisphere %in% c("N", "S")
@@ -175,7 +175,7 @@ coordinates_with_hemispheres <- function(t, original) {
   })
   is_lat <- vapply(values, `[[`, logical(1), "is_lat")
   if (sum(is_lat) != 1) {
-    abort("Cannot tell the latitude from the longitude in {.val {cli_escape(original)}}.",
+    abort("Cannot tell the latitude from the longitude in {.val {cli::ansi_strip(original)}}.",
           "i" = "Use N/S for the latitude and E/W (or O) for the longitude.")
   }
   lat <- values[[which(is_lat)]]
@@ -187,7 +187,7 @@ coordinates_with_hemispheres <- function(t, original) {
 #' @noRd
 coordinates_without_hemispheres <- function(t, original) {
   if (grepl("[A-Z]", t)) {
-    abort("Cannot read the coordinates {.val {cli_escape(original)}}.",
+    abort("Cannot read the coordinates {.val {cli::ansi_strip(original)}}.",
           "i" = "Valid examples: {.val 41.123456, -3.123456} or {.val 41\u00b007'24.4\"N 3\u00b007'24.4\"W}.",
           "i" = "Plus Codes and place names are not accepted.")
   }
@@ -202,12 +202,12 @@ coordinates_without_hemispheres <- function(t, original) {
     }
   }
   if (!length(numbers) %in% c(2, 4, 6)) {
-    abort("Cannot read the coordinates {.val {cli_escape(original)}}.",
+    abort("Cannot read the coordinates {.val {cli::ansi_strip(original)}}.",
           "i" = "Valid examples: {.val 41.123456, -3.123456} or {.val 41\u00b007'24.4\"N 3\u00b007'24.4\"W}.")
   }
   if (length(numbers) == 2) {
     if (!all(grepl(".", numbers, fixed = TRUE))) {
-      abort("{.val {cli_escape(original)}} has whole numbers only: it does not look like coordinates.",
+      abort("{.val {cli::ansi_strip(original)}} has whole numbers only: it does not look like coordinates.",
             "i" = "Write them with decimals ({.val 41.12, -3.12}) or as {.code c(latitude, longitude)}.")
     }
     groups <- list(numbers[1], numbers[2])
@@ -226,7 +226,7 @@ coordinates_without_hemispheres <- function(t, original) {
       groups <- split(numbers, rep(1:2, each = length(numbers) / 2))
     }
     if (length(groups) != 2 || any(!lengths(groups) %in% 1:3)) {
-      abort("Cannot read the coordinates {.val {cli_escape(original)}}: write each one as degrees, minutes and seconds.")
+      abort("Cannot read the coordinates {.val {cli::ansi_strip(original)}}: write each one as degrees, minutes and seconds.")
     }
   }
   values <- lapply(groups, dms_value, original = original)
@@ -241,10 +241,10 @@ dms_value <- function(parts, original) {
   negative <- startsWith(parts[1], "-")
   decimals <- function(p) if (grepl(".", p, fixed = TRUE)) nchar(sub("^.*\\.", "", p)) else 0
   if (length(x) > 1 && any(vapply(parts[-length(parts)], decimals, numeric(1)) > 0)) {
-    abort("In {.val {cli_escape(original)}} only the last component (degrees, minutes or seconds) can have decimals.")
+    abort("In {.val {cli::ansi_strip(original)}} only the last component (degrees, minutes or seconds) can have decimals.")
   }
   if (any(x[-1] >= 60) || any(x[-1] < 0)) {
-    abort("Minutes and seconds must be between 0 and 59 in {.val {cli_escape(original)}}.")
+    abort("Minutes and seconds must be between 0 and 59 in {.val {cli::ansi_strip(original)}}.")
   }
   value <- abs(x[1]) + sum(x[-1] / c(60, 3600)[seq_along(x[-1])])
   step <- 10^-decimals(parts[length(parts)]) / c(1, 60, 3600)[length(parts)]
@@ -264,10 +264,10 @@ decimal_step <- function(x) {
 check_coordinates <- function(lat, lon, step_degrees, original) {
   original <- paste(original, collapse = ", ")
   if (length(lat) != 1 || length(lon) != 1 || anyNA(c(lat, lon))) {
-    abort("The latitude or the longitude is missing in {.val {cli_escape(original)}}.")
+    abort("The latitude or the longitude is missing in {.val {cli::ansi_strip(original)}}.")
   }
   if (abs(lat) > 90 || abs(lon) > 180) {
-    abort("Coordinates out of range: {.val {cli_escape(original)}}.",
+    abort("Coordinates out of range: {.val {cli::ansi_strip(original)}}.",
           "i" = "The latitude must be between -90 and 90 and the longitude between -180 and 180.")
   }
   # Maximum rounding error: half a step on each axis (1 degree ~ 111.32 km)

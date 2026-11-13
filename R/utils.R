@@ -19,7 +19,9 @@ inform <- function(..., .envir = parent.frame()) {
 }
 
 #' Escapes text coming from outside (stderr of a program, file contents) so
-#' that cli does not interpret its braces as glue expressions.
+#' that cli does not interpret its braces as glue expressions. Only for text
+#' that becomes part of the message itself: a value interpolated with `{x}`
+#' is never interpreted again, so it only needs `cli::ansi_strip()`.
 #' @noRd
 cli_escape <- function(x) gsub("([{}])", "\\1\\1", cli::ansi_strip(x))
 
@@ -185,6 +187,22 @@ snap_browser_hint <- function(file) {
   c("!" = "Firefox or Chromium installed as a snap (Ubuntu) cannot open files in {.file /tmp}: open the page in the Viewer of RStudio or in another browser, or give a results folder outside {.file /tmp}.")
 }
 
+#' Why some packages cannot be used: not installed, or cannot be loaded
+#' (usually because a package they import is older than they need)
+#' @return NULL when all of them load, otherwise the first problem (text).
+#' @noRd
+load_problem <- function(packages) {
+  for (p in packages) {
+    if (!rlang::is_installed(p)) return(paste(p, "is not installed"))
+    problem <- tryCatch({
+      loadNamespace(p)
+      NULL
+    }, error = function(e) paste(p, "cannot be loaded:", conditionMessage(e)))
+    if (!is.null(problem)) return(problem)
+  }
+  NULL
+}
+
 #' Text that can be used as (part of) a file name on any system
 #' @noRd
 safe_name <- function(x) {
@@ -305,9 +323,15 @@ default_language <- function() {
 #' Reports, for each requirement, whether it is available and how to install
 #' it otherwise: ffmpeg (required to convert audio and create videos),
 #' birdnetR (required; the first time it installs Python and the BirdNET
-#' model) and, for the PDF report, Quarto, knitr and rmarkdown, and the map
-#' packages (maptiles, sf and terra). It also shows the language that will be
-#' used for the common names of the species.
+#' model) and, for the PDF report, Quarto (1.4 or later), knitr and rmarkdown,
+#' and the map packages (maptiles, sf and terra). It also shows the language
+#' that will be used for the common names of the species.
+#'
+#' knitr and rmarkdown are not only looked for but loaded: an old version of
+#' one of the packages they use (often htmltools, after updating RStudio or
+#' rmarkdown) prevents loading them, and then neither the report nor the
+#' vignettes can be built. The message of R says which package must be
+#' updated.
 #'
 #' @return Invisibly, a named logical vector: `TRUE` when the requirement is
 #'   available.
@@ -317,10 +341,13 @@ default_language <- function() {
 check_requirements <- function() {
   path <- function(f) tryCatch(f(), error = function(e) NA_character_)
   ffmpeg <- path(ffmpeg_path)
-  quarto <- path(quarto_path)
+  quarto <- path(function() quarto_path(check_version = FALSE))
+  quarto_version <- attr(quarto, "version") %||% NA_character_
+  quarto_old <- !is.na(quarto) && utils::compareVersion(quarto_version, "1.4") < 0
   has <- function(p) rlang::is_installed(p)
-  ok <- c(ffmpeg = !is.na(ffmpeg), birdnetR = has("birdnetR"), quarto = !is.na(quarto),
-          knitr_rmarkdown = has("knitr") && has("rmarkdown"),
+  knitr_problem <- load_problem(c("knitr", "rmarkdown"))
+  ok <- c(ffmpeg = !is.na(ffmpeg), birdnetR = has("birdnetR"), quarto = !is.na(quarto) && !quarto_old,
+          knitr_rmarkdown = is.null(knitr_problem),
           map = has("maptiles") && has("sf") && has("terra"))
   line <- function(yes, text_yes, text_no) if (yes) c("v" = text_yes) else c("x" = text_no)
   language <- default_language()
@@ -330,10 +357,14 @@ check_requirements <- function() {
          "ffmpeg: not found (required). Linux: {.code sudo apt install ffmpeg}; macOS: {.code brew install ffmpeg}; Windows: {.code winget install ffmpeg}. Or set {.code options(AudiomothR.ffmpeg = \"/path/to/ffmpeg\")}."),
     line(ok[["birdnetR"]], "birdnetR {utils::packageVersion('birdnetR')} (the first time it installs Python and the BirdNET model)",
          "birdnetR: not installed (required). {.code install.packages(\"birdnetR\")}"),
-    line(ok[["quarto"]], "Quarto (PDF report): {.file {quarto}}",
-         "Quarto: not found (only for {.fn create_report}). It comes with RStudio and Positron, or {.url https://quarto.org}."),
-    line(ok[["knitr_rmarkdown"]], "knitr and rmarkdown (PDF report)",
-         "knitr or rmarkdown: not installed (only for {.fn create_report}). {.code install.packages(c(\"knitr\", \"rmarkdown\"))}"),
+    if (quarto_old) {
+      c("x" = "Quarto {quarto_version} in {.file {quarto}} is too old: the PDF report needs 1.4 or later. Update RStudio or Positron (they include it), or install it from {.url https://quarto.org}.")
+    } else {
+      line(ok[["quarto"]], "Quarto {quarto_version} (PDF report): {.file {quarto}}",
+           "Quarto: not found (only for {.fn create_report}). It comes with RStudio and Positron, or {.url https://quarto.org}.")
+    },
+    line(ok[["knitr_rmarkdown"]], "knitr {utils::packageVersion('knitr')} and rmarkdown {utils::packageVersion('rmarkdown')} (PDF report and vignettes)",
+         "knitr and rmarkdown (only for {.fn create_report} and the vignettes): {cli::ansi_strip(knitr_problem)}. Update them and the packages they use: {.code install.packages(c(\"knitr\", \"rmarkdown\", \"htmltools\", \"xfun\"))}, then restart R."),
     line(ok[["map"]], "maptiles, sf and terra (report map on OpenStreetMap)",
          "maptiles, sf or terra: not installed (optional; without them the map has no background). {.code install.packages(c(\"maptiles\", \"sf\", \"terra\"))}"),
     "i" = "Language of the common names (from the system locale): {.val {language}}. Change it with the {.arg language} argument of {.fn analyze_birdnet}."

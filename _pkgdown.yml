@@ -1,0 +1,63 @@
+url: https://ajcanepa.github.io/AudiomothR/
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, articles, reference, news]
+    right: [search, github]
+
+articles:
+  - title: Vignettes (read them in order)
+    navbar: ~
+    contents:
+      - audiomothr-1-workflow
+      - audiomothr-2-species
+      - audiomothr-3-boxes
+
+reference:
+  - title: Before you start
+    contents:
+      - check_requirements
+      - setup_birdnet
+  - title: Everything in one call
+    contents:
+      - process_audiomoth
+  - title: "Step 1: Reading the card"
+    contents:
+      - read_audiomoth
+      - read_config
+      - parse_coordinates
+      - choose_folder
+      - choose_output
+  - title: "Steps 2-3: Preparing the audio and analysing with BirdNET"
+    contents:
+      - prepare_audio
+      - analyze_birdnet
+      - read_detections
+  - title: Which species BirdNET looks for
+    contents:
+      - read_species_list
+      - gbif_species_list
+  - title: "Step 4: Summary by species"
+    contents:
+      - species_summary
+      - detected_species
+  - title: "Step 5: Examples, spectrograms and videos"
+    contents:
+      - select_examples
+      - extract_examples
+      - spectrogram_image
+      - spectrogram_video
+  - title: "Step 6: Validating the records by ear"
+    contents:
+      - create_validation
+      - read_validation
+  - title: "Steps 7-8: Observation.org and the PDF report"
+    contents:
+      - export_observation
+      - create_report
+  - title: The package
+    contents:
+      - AudiomothR-package

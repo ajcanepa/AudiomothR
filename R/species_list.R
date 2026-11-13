@@ -271,17 +271,19 @@ gbif_datasets <- c(
 #'   `gbif_name`, `records` and `match`. It can be given to
 #'   [analyze_birdnet()] as `species_list`.
 #' @seealso [read_species_list()] for the accepted formats of a list.
-#' @examples
-#' \dontrun{
+#' @examplesIf interactive()
+#' # Needs an Internet connection
 #' # Around a site, all the year
 #' sp <- gbif_species_list("41.35, -3.70", radius_km = 25)
 #' head(sp)
 #'
 #' # Around the deployments of a box, in the months of its recordings, saved
 #' # to be reviewed and then used in the analysis
-#' sp <- gbif_species_list(am, radius_km = 30, file = "~/species_box_01.csv")
-#' am <- analyze_birdnet(am, species_list = "~/species_box_01.csv")
-#' }
+#' card <- system.file("extdata", "example", "card", package = "AudiomothR")
+#' am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
+#' list_file <- tempfile(fileext = ".csv")
+#' sp <- gbif_species_list(am, radius_km = 30, file = list_file)
+#' # am <- analyze_birdnet(am, species_list = list_file)
 #' @export
 gbif_species_list <- function(x, radius_km = 25, months = NULL, years = NULL,
                               datasets = c("ebird", "observation", "inaturalist"),

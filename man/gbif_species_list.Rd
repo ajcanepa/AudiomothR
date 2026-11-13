@@ -78,16 +78,20 @@ on \if{html}{\out{<date>}}"; the queries are in the attribute \code{"queries"}).
 a summary (counts per species), not a GBIF download with a DOI.
 }
 \examples{
-\dontrun{
+\dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
+# Needs an Internet connection
 # Around a site, all the year
 sp <- gbif_species_list("41.35, -3.70", radius_km = 25)
 head(sp)
 
 # Around the deployments of a box, in the months of its recordings, saved
 # to be reviewed and then used in the analysis
-sp <- gbif_species_list(am, radius_km = 30, file = "~/species_box_01.csv")
-am <- analyze_birdnet(am, species_list = "~/species_box_01.csv")
-}
+card <- system.file("extdata", "example", "card", package = "AudiomothR")
+am <- read_audiomoth(card, coordinates = "41.00, -3.00", output = tempfile())
+list_file <- tempfile(fileext = ".csv")
+sp <- gbif_species_list(am, radius_km = 30, file = list_file)
+# am <- analyze_birdnet(am, species_list = list_file)
+\dontshow{\}) # examplesIf}
 }
 \seealso{
 \code{\link[=read_species_list]{read_species_list()}} for the accepted formats of a list.

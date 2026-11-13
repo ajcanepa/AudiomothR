@@ -136,7 +136,7 @@ create_validation <- function(am, min_confidence = 0.5, min_detections = 1, n_cl
       base <- sprintf("%s_%d", b$record_id, k)
       res <- tryCatch(make_clip(am, b, file.path(clips_dir, base), margin_s, spectrograms, has_ffmpeg),
                       error = function(e) {
-                        cli::cli_warn("Clip {base}: {cli_escape(conditionMessage(e))}")
+                        cli::cli_warn("Clip {base}: {cli::ansi_strip(conditionMessage(e))}")
                         NULL
                       })
       if (is.null(res)) next
@@ -170,7 +170,7 @@ create_validation <- function(am, min_confidence = 0.5, min_detections = 1, n_cl
   inform(c("v" = "Validation page with {nrow(records)} record{?s} in {.file {html}}.",
            "i" = "Listen and decide, press {.strong Download decisions (CSV)} and run {.code export_observation(am)}: the decisions are applied automatically.",
            snap_browser_hint(html)))
-  if (open) tryCatch(utils::browseURL(html), error = function(e) inform("!" = "Cannot open the browser: {cli_escape(conditionMessage(e))}"))
+  if (open) tryCatch(utils::browseURL(html), error = function(e) inform("!" = "Cannot open the browser: {cli::ansi_strip(conditionMessage(e))}"))
   invisible(html)
 }
 

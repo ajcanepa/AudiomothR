@@ -25,6 +25,7 @@ once. Running it is optional: \code{\link[=analyze_birdnet]{analyze_birdnet()}} 
 }
 \examples{
 \dontrun{
-setup_birdnet()   # the first time: a few minutes and about 3 GB
+# Not run: it installs Python, TensorFlow and the BirdNET model (about 3 GB)
+setup_birdnet()
 }
 }
